@@ -49,7 +49,7 @@ export default function Login({ navigation }) {
       <Image source={require('../assets/logo.png')} style={styles.logo} />
       <Text style={styles.title}>Iniciar sesión</Text>
 
-      <Text style={styles.label}>Correo</Text>
+      <Text style={styles.label}>Correo electrónico *</Text>
       <View style={styles.inputContainer}>
         <FontAwesome name="envelope" size={20} color="#ccc" style={styles.icon} />
         <TextInput
@@ -62,7 +62,7 @@ export default function Login({ navigation }) {
         />
       </View>
 
-      <Text style={styles.label}>Contraseña</Text>
+      <Text style={styles.label}>Contraseña *</Text>
       <View style={styles.inputContainer}>
         <FontAwesome name="lock" size={20} color="#ccc" style={styles.icon} />
         <TextInput
@@ -82,9 +82,10 @@ export default function Login({ navigation }) {
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-        <Text style={styles.signUpText}>¿No tienes cuenta aún? Regístrate</Text>
+        <Text style={styles.signUpText}>¿No tienes una cuenta? Regístrate</Text>
       </TouchableOpacity>
     </View>
+    
   );
 }
 
@@ -97,7 +98,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   logo: {
-    width: 100,
+    width: 300,
     height: 100,
     marginBottom: 20,
   },
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderColor: '#b9770e',
+    borderColor: '#1c5987',
     marginBottom: 20,
     width: '100%',
   },
@@ -128,7 +129,7 @@ const styles = StyleSheet.create({
     height: 40,
   },
   button: {
-    backgroundColor: '#922b21',
+    backgroundColor: '#4e7246',
     paddingVertical: 10,
     paddingHorizontal: 40,
     borderRadius: 5,
