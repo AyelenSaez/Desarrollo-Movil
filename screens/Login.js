@@ -8,6 +8,7 @@ export default function Login({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(false);
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
@@ -79,6 +80,19 @@ export default function Login({ navigation }) {
           <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={20} color="#ccc" />
         </TouchableOpacity>
       </View>
+      <View style={styles.rowOptions}>
+        <TouchableOpacity style={styles.rememberRow} onPress={() => setRemember(!remember)}>
+          <FontAwesome
+            name={remember ? 'check-square-o' : 'square-o'}
+            size={18}
+            color="#333"/>
+          <Text style={styles.rememberText}>Recordarme</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => Alert.alert('Recuperar contraseña')}>
+          <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
+        </TouchableOpacity>
+      </View>
 
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Iniciar sesión</Text>
@@ -89,6 +103,10 @@ export default function Login({ navigation }) {
           ¿No tienes una cuenta? <Text style={styles.signUpBold}>Regístrate</Text>
         </Text>
       </TouchableOpacity>
+
+      <Text style={styles.requiredNote}>
+        Los campos (<Text style={styles.asterisk}>*</Text>) son obligatorios
+      </Text>
     </View>
     
   );
@@ -128,7 +146,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderColor: '#1c5987',
+    borderColor: '#333',
     marginBottom: 20,
     width: '100%',
   },
@@ -139,6 +157,25 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 40,
   },
+  rowOptions:{
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
+    marginBottom: 10,
+    }, 
+  rememberRow:{
+    flexDirection: "row",
+    alignItems: "center",
+    },  
+  rememberText:{
+    marginLeft: 6,
+    fontSize: 13,
+    },
+  forgotText:{
+    fontSize: 13,
+    color:'#0b2f5b',
+    },      
   button: {
     backgroundColor: '#4e7246',
     paddingVertical: 14,
@@ -157,8 +194,13 @@ const styles = StyleSheet.create({
     color: '#0b2f5b',
     fontSize:14,
   },
-    signUpBold: {
+  signUpBold: {
     fontWeight:"bold",
+  },
+  requiredNote: {
+    marginTop: 150,
+    fontSize: 11,
+    color: "#333"
   },
 
 });
