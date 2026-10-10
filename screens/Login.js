@@ -47,9 +47,10 @@ export default function Login({ navigation }) {
   return (
     <View style={styles.container}>
       <Image source={require('../assets/logo.png')} style={styles.logo} />
-      <Text style={styles.title}>Iniciar sesión</Text>
 
-      <Text style={styles.label}>Correo electrónico *</Text>
+      <Text style={styles.label}>
+        Correo electrónico <Text style={styles.asterisk}>*</Text>
+      </Text>
       <View style={styles.inputContainer}>
         <FontAwesome name="envelope" size={20} color="#ccc" style={styles.icon} />
         <TextInput
@@ -62,7 +63,9 @@ export default function Login({ navigation }) {
         />
       </View>
 
-      <Text style={styles.label}>Contraseña *</Text>
+      <Text style={styles.label}>
+          Contraseña <Text style={styles.asterisk}>*</Text>
+      </Text>
       <View style={styles.inputContainer}>
         <FontAwesome name="lock" size={20} color="#ccc" style={styles.icon} />
         <TextInput
@@ -78,11 +81,13 @@ export default function Login({ navigation }) {
       </View>
 
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Ingresar</Text>
+        <Text style={styles.buttonText}>Iniciar sesión</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-        <Text style={styles.signUpText}>¿No tienes una cuenta? Regístrate</Text>
+        <Text style={styles.signUpText}>
+          ¿No tienes una cuenta? <Text style={styles.signUpBold}>Regístrate</Text>
+        </Text>
       </TouchableOpacity>
     </View>
     
@@ -92,15 +97,17 @@ export default function Login({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 30,
+    paddingTop: 90,
     backgroundColor: '#fff',
   },
   logo: {
-    width: 300,
-    height: 100,
-    marginBottom: 20,
+    width: 340,
+    height: 140,
+    resizeMode: "contain",
+    marginBottom: 80,
   },
   title: {
     fontSize: 24,
@@ -112,6 +119,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     marginTop: 10,
+    color: '#0b2f5b',
+  },
+  asterisk: {
+    color: '#d32f2f',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -130,10 +141,11 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#4e7246',
-    paddingVertical: 10,
-    paddingHorizontal: 40,
-    borderRadius: 5,
-    marginTop: 20,
+    paddingVertical: 14,
+    borderRadius: 8,
+    marginTop: 40,
+    width: "85%",
+    alignItems: "center"
   },
   buttonText: {
     color: '#fff',
@@ -142,6 +154,11 @@ const styles = StyleSheet.create({
   },
   signUpText: {
     marginTop: 20,
-    color: '#007AFF',
+    color: '#0b2f5b',
+    fontSize:14,
   },
+    signUpBold: {
+    fontWeight:"bold",
+  },
+
 });
