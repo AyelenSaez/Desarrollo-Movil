@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { auth } from '../src/config/firebaseConfig';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { registrarUsuario } from '../src/services/authService';
 
 export default function SignUp({ navigation }) {
   const [firstName, setFirstName] = useState('');
@@ -33,37 +32,23 @@ export default function SignUp({ navigation }) {
       return;
     }
 
-    let credential;
-    try {
-      credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
-    } catch (error) {
-      console.error('Error de registro:', error.code, error.message);
-      let errorMessage = "Hubo un problema al registrar el usuario.";
-      switch (error.code) {
-        case 'auth/email-already-in-use':
-          errorMessage = "El correo electrónico ya está en uso.";
-          break;
-        case 'auth/invalid-email':
-          errorMessage = "El formato del correo electrónico no es válido.";
-          break;
-        case 'auth/weak-password':
-          errorMessage = "La contraseña es demasiado débil.";
-          break;
-        case 'auth/network-request-failed':
-          errorMessage = "Error de conexión, por favor intenta más tarde.";
-          break;
-        case 'auth/invalid-api-key':
-          errorMessage = "La clave API de Firebase no es válida. Revisa el archivo .env.";
-          break;
-      }
-      Alert.alert("Error", `${errorMessage}\n\nCódigo: ${error.code ?? 'desconocido'}`);
+    const resultado = await registrarUsuario({
+      nombre: `${firstName.trim()} ${lastName.trim()}`,
+      correo: email,
+      contrasena: password,
+    });
+
+    if (!resultado.ok) {
+      navigation.navigate('RegistroFallido', {
+        mensaje: resultado.mensaje,
+        codigo: resultado.codigo,
+      });
       return;
     }
 
-    try {
-      await updateProfile(credential.user, { displayName: `${firstName.trim()} ${lastName.trim()}` });
+    if (resultado.nombreGuardado) {
       Alert.alert("Registro exitoso", "Usuario registrado con éxito.");
-    } catch (error) {
+    } else {
       Alert.alert("Cuenta creada", "La cuenta se creó, pero no se pudo guardar el nombre.");
     }
     // Firebase inicia la sesión y el navegador muestra Home.
