@@ -7,11 +7,14 @@ import { auth, isFirebaseConfigured } from '../src/config/firebaseConfig';
 import Login from '../screens/Login';
 import SignUp from '../screens/SignUp';
 import Home from '../screens/Home';
+import LoginExitoso from '../screens/LoginExitoso';
 
 const Stack = createStackNavigator();
 
 export default function Navigation() {
   const [user, setUser] = useState(undefined);
+  // true = mostrar la pantalla de "login exitoso" antes de pasar a Home
+  const [mostrarExito, setMostrarExito] = useState(false);
 
   useEffect(() => {
     if (!auth) return;
@@ -34,17 +37,23 @@ export default function Navigation() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator>
-        {user ? (
+        <Stack.Navigator>
+        {user && mostrarExito ? (
+          <Stack.Screen name="LoginExitoso" options={{ headerShown: false }}>
+            {() => <LoginExitoso onContinuar={() => setMostrarExito(false)} />}
+          </Stack.Screen>
+        ) : user ? (
           <Stack.Screen name="Home" component={Home} options={{ title: 'Inicio' }} />
         ) : (
           <>
-            <Stack.Screen name="Login" component={Login} options={{ title: 'Iniciar sesión' }} />
+            <Stack.Screen name="Login" options={{ title: 'Iniciar sesión' }}>
+              {(props) => <Login {...props} setMostrarExito={setMostrarExito} />}
+            </Stack.Screen>
             <Stack.Screen name="SignUp" component={SignUp} options={{ title: 'Registro' }} />
           </>
         )}
       </Stack.Navigator>
-    </NavigationContainer>
+      </NavigationContainer>
   );
 }
 

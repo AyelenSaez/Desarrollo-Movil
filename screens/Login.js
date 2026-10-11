@@ -21,8 +21,7 @@ const loginSchema = z.object({
     .min(1, 'Este campo es obligatorio'),             
 });
  
-export default function Login({ navigation }) {
- 
+export default function Login({ navigation, setMostrarExito }) { 
   // ESTADOS LOCALES
   const [showPassword, setShowPassword] = useState(false); // true = contraseña visible
   const [remember, setRemember] = useState(false);
@@ -42,12 +41,13 @@ export default function Login({ navigation }) {
   // ENVÍO DEL FORMULARIO:  Solo se ejecuta si la validación de zod pasó correctamente
   const onSubmit = async ({ email, password }) => {
     setLoginError(null); // limpia el error del intento anterior
+    setMostrarExito?.(true); // si el login sale bien, se mostrará la pantalla de éxito
     try {
       // Intenta iniciar sesión en Firebase
       await signInWithEmailAndPassword(auth, email.trim(), password);
-      Alert.alert("Login exitoso", "Has iniciado sesión correctamente.");
-      // El observador de Firebase cambia la pantalla al detectar la sesión.
+      // Navigation detecta la sesión y muestra la pantalla de login exitoso.
     } catch (error) {
+      setMostrarExito?.(false); // el login falló: no mostrar la pantalla de éxito
       console.log('Error de inicio de sesión:', error.code, error.message);
       switch (error.code) {
         case 'auth/invalid-email':
