@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image,ScrollView } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { auth } from '../src/config/firebaseConfig';
- 
+import MensajeError from '../components/MensajeError'; 
 // ESQUEMA DE VALIDACIÓN (zod)
 // Define cómo debe ser un formulario válido. Las reglas se  evalúan en orden: si el campo está vacío se muestra el primer mensaje y no el del formato.
 
@@ -25,7 +25,8 @@ export default function Login({ navigation }) {
  
   // ESTADOS LOCALES
   const [showPassword, setShowPassword] = useState(false); // true = contraseña visible
-  const [remember, setRemember] = useState(false);         // estado del checkbox "Recordarme"
+  const [remember, setRemember] = useState(false);
+  const [loginError, setLoginError] = useState(null);         // estado del checkbox "Recordarme"
 
   // CONFIGURACIÓN DEL FORMULARIO (react-hook-form)
   const {
@@ -40,48 +41,57 @@ export default function Login({ navigation }) {
  
   // ENVÍO DEL FORMULARIO:  Solo se ejecuta si la validación de zod pasó correctamente
   const onSubmit = async ({ email, password }) => {
+    setLoginError(null); // limpia el error del intento anterior
     try {
       // Intenta iniciar sesión en Firebase
       await signInWithEmailAndPassword(auth, email.trim(), password);
       Alert.alert("Login exitoso", "Has iniciado sesión correctamente.");
       // El observador de Firebase cambia la pantalla al detectar la sesión.
     } catch (error) {
-      console.error('Error de inicio de sesión:', error.code, error.message);
-      let errorMessage = "Hubo un problema al iniciar sesión.";
+      console.log('Error de inicio de sesión:', error.code, error.message);
       switch (error.code) {
         case 'auth/invalid-email':
-          errorMessage = "El formato del correo electrónico no es válido.";
-          break;
         case 'auth/invalid-credential':
         case 'auth/wrong-password':
-          errorMessage = "La contraseña es incorrecta.";
-          break;
         case 'auth/user-not-found':
-          errorMessage = "No se encontró un usuario con este correo.";
+          setLoginError({
+            message: 'Correo o contraseña incorrectos. Intente nuevamente.',
+            fields: true,
+          });
           break;
         case 'auth/network-request-failed':
-          errorMessage = "Error de conexión, por favor intenta más tarde.";
+          setLoginError({ message: 'Error de conexión, por favor intenta más tarde.', fields: false });
           break;
         case 'auth/invalid-api-key':
-          errorMessage = "La clave API de Firebase no es válida. Revisa el archivo .env.";
+          setLoginError({ message: 'La clave API de Firebase no es válida. Revisa el archivo .env.', fields: false });
           break;
+        default:
+          setLoginError({ message: 'Hubo un problema al iniciar sesión.', fields: false });
       }
-      // Alerta con el mensaje y el código del error
-      Alert.alert("Error", `${errorMessage}\n\nCódigo: ${error.code ?? 'desconocido'}`);
     }
   };
  
+    // Un campo se pinta rojo si tiene error de validación o si falló el login
+  const emailRojo = !!errors.email || !!loginError?.fields;
+  const passRojo = !!errors.password || !!loginError?.fields;
+
   // INTERFAZ
   return (
-    <View style={styles.container}>
-      <Image source={require('../assets/logo.png')} style={styles.logo} />
+    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <Image
+        source={require('../assets/logo.png')}
+        style={[styles.logo, loginError && { marginBottom: 20 }]}
+      />
+
+      {/* Banner de error de login (solo aparece si falló el inicio de sesión) */}
+            {loginError && <MensajeError tipo="banner" mensaje={loginError.message} />}
 
       <Text style={styles.label}>
         Correo electrónico <Text style={styles.asterisk}>*</Text>
       </Text>
-      <View style={[styles.inputContainer, errors.email && styles.inputError]}>
+      <View style={[styles.inputContainer, emailRojo && styles.inputError]}>
         {/* Ícono del sobre: rojo si hay error, gris si no */}
-        <FontAwesome name="envelope" size={15} color={errors.email ? '#e05252' : '#ccc'} style={styles.icon} />
+        <FontAwesome name="envelope" size={15} color={emailRojo ? '#e05252' : '#ccc'} style={styles.icon} />
  
         {/* Controller conecta este TextInput con el campo "email" del formulario */}
         <Controller
@@ -96,26 +106,20 @@ export default function Login({ navigation }) {
               onBlur={onBlur}                        // avisa cuando el usuario sale del campo
               keyboardType="email-address"           // teclado con arroba
               autoCapitalize="none"                  // sin mayúscula inicial
-              onFocus={() => clearErrors('email')}   // borra el error al tocar el campo
+              onFocus={() => {clearErrors('email'); setLoginError(null); }}   // borra el error al tocar el campo
             />
           )}
         />
       </View>
       {/* Mensaje de error del correo (solo aparece si hay error) */}
-      {errors.email && (
-        <View style={styles.errorRow}>
-          <FontAwesome name="exclamation-circle" size={15} color="#e05252" />
-          <Text style={styles.errorText}>{errors.email.message}</Text>
-        </View>
-      )}
-
+            {errors.email && <MensajeError mensaje={errors.email.message} />}
       <Text style={styles.label}>
           Contraseña <Text style={styles.asterisk}>*</Text>
       </Text>
       {/* Caja del campo: el borde se pone rojo si hay error en la contraseña */}
-      <View style={[styles.inputContainer, errors.password && styles.inputError]}>
+      <View style={[styles.inputContainer, passRojo && styles.inputError]}>
         {/* Ícono del candado */}
-        <FontAwesome name="lock" size={17} color={errors.password ? '#e05252' : '#ccc'} style={styles.icon} />
+        <FontAwesome name="lock" size={17} color={passRojo ? '#e05252' : '#ccc'} style={styles.icon} />
  
         {/* Controller conecta este TextInput con el campo "password" del formulario */}
         <Controller
@@ -128,23 +132,18 @@ export default function Login({ navigation }) {
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              onFocus={() => clearErrors('password')}   // borra el error al tocar el campo
+              onFocus={() => {clearErrors('password'); setLoginError(null);}}   // borra el error al tocar el campo
               secureTextEntry={!showPassword}           // oculta los caracteres si showPassword es false
             />
           )}
         />
         {/* Botón del ojo: muestra u oculta la contraseña */}
         <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-          <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={17} color={errors.password ? '#e05252' : '#ccc'} />
+          <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={17} color={passRojo ? '#e05252' : '#ccc'} />
         </TouchableOpacity>
       </View>
       {/* Mensaje de error de la contraseña (solo aparece si hay error) */}
-      {errors.password && (
-        <View style={styles.errorRow}>
-          <FontAwesome name="exclamation-circle" size={15} color="#e05252" />
-          <Text style={styles.errorText}>{errors.password.message}</Text>
-        </View>
-      )}
+            {errors.password && <MensajeError mensaje={errors.password.message} />}
       {/* ---------- OPCIONES: RECORDARME / OLVIDÉ MI CONTRASEÑA ---------- */}
       <View style={styles.rowOptions}>
         {/* Checkbox: al tocarlo invierte el estado "remember" */}
@@ -175,17 +174,18 @@ export default function Login({ navigation }) {
       <Text style={styles.requiredNote}>
         Los campos (<Text style={styles.asterisk}>*</Text>) son obligatorios
       </Text>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'flex-start',
     alignItems: 'center',
     paddingHorizontal: 30,
     paddingTop: 90,
+    paddingBottom: 60,
     backgroundColor: '#fff',
   },
   logo: {
@@ -286,5 +286,22 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: -14,
     marginBottom: 15,
+  },
+    banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    backgroundColor: '#fdecec',
+    borderColor: '#e05252',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 10,
+  },
+  bannerText: {
+    flex: 1,
+    color: '#e05252',
+    fontSize: 14,
+    marginLeft: 10,
   },
 });
