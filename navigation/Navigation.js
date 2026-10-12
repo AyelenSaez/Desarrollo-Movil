@@ -8,6 +8,7 @@ import Login from '../screens/Login';
 import SignUp from '../screens/SignUp';
 import Home from '../screens/Home';
 import LoginExitoso from '../screens/LoginExitoso';
+import RegistroExitoso from '../screens/RegistroExitoso';
 
 const Stack = createStackNavigator();
 
@@ -47,9 +48,10 @@ export default function Navigation() {
         ) : (
           <>
             <Stack.Screen name="Login" options={{ title: 'Iniciar sesión' }}>
-              {(props) => <Login {...props} setMostrarExito={setMostrarExito} />}
+              {(props) => <Login {...props} setMostrarExito={setMostrarExito}  />}
             </Stack.Screen>
-            <Stack.Screen name="SignUp" component={SignUp} options={{ title: 'Registro' }} />
+            <Stack.Screen name="SignUp" component={SignUp} options={{ headerShown: false }} />
+            <Stack.Screen name="RegistroExitoso" component={RegistroExitoso} options={{ headerShown: false }} />
           </>
         )}
       </Stack.Navigator>
