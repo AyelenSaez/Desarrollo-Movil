@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image,ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useForm, Controller } from 'react-hook-form';
@@ -10,7 +10,7 @@ import { auth } from '../src/config/firebaseConfig';
 import MensajeError from '../components/MensajeError'; 
 // ESQUEMA DE VALIDACIÓN (zod)
 // Define cómo debe ser un formulario válido. Las reglas se  evalúan en orden: si el campo está vacío se muestra el primer mensaje y no el del formato.
- 
+
 const loginSchema = z.object({
   email: z
     .string()                                          
@@ -21,17 +21,17 @@ const loginSchema = z.object({
     .string()                                         
     .min(1, 'Este campo es obligatorio'),             
 });
- 
+
 // Nombres con los que se guardan los datos de "Recordarme" en el celular
 const CLAVE_EMAIL = 'recordar_email';
 const CLAVE_PASSWORD = 'recordar_password';
- 
+
 export default function Login({ navigation, setMostrarExito }) { 
   // ESTADOS LOCALES
   const [showPassword, setShowPassword] = useState(false); // true = contraseña visible
   const [remember, setRemember] = useState(false);
   const [loginError, setLoginError] = useState(null);         // estado del checkbox "Recordarme"
- 
+
   // CONFIGURACIÓN DEL FORMULARIO (react-hook-form)
   const {
     control,                 // lo usa cada Controller para engancharse al formulario
@@ -43,7 +43,7 @@ export default function Login({ navigation, setMostrarExito }) {
     resolver: zodResolver(loginSchema),            // valida con el esquema de zod
     defaultValues: { email: '', password: '' },    // ambos campos arrancan vacíos
   });
- 
+
   // AL ABRIR LA PANTALLA: si la última vez se tildó "Recordarme", rellena los campos
   useEffect(() => {
     const cargarDatosGuardados = async () => {
@@ -60,7 +60,7 @@ export default function Login({ navigation, setMostrarExito }) {
     };
     cargarDatosGuardados();
   }, []);
- 
+
   // Guarda o borra los datos según el checkbox "Recordarme"
   const actualizarDatosGuardados = async (email, password) => {
     try {
@@ -75,7 +75,7 @@ export default function Login({ navigation, setMostrarExito }) {
       console.log('No se pudieron guardar los datos:', error);
     }
   };
- 
+
   // ENVÍO DEL FORMULARIO:  Solo se ejecuta si la validación de zod pasó correctamente
   const onSubmit = async ({ email, password }) => {
     setLoginError(null); // limpia el error del intento anterior
@@ -110,29 +110,37 @@ export default function Login({ navigation, setMostrarExito }) {
       }
     }
   };
- 
+
     // Un campo se pinta rojo si tiene error de validación o si falló el login
   const emailRojo = !!errors.email || !!loginError?.fields;
   const passRojo = !!errors.password || !!loginError?.fields;
- 
+
   // INTERFAZ
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#fff' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+    >
       <Image
         source={require('../assets/logo.png')}
         style={[styles.logo, loginError && { marginBottom: 20 }]}
       />
- 
+
       {/* Banner de error de login (solo aparece si falló el inicio de sesión) */}
             {loginError && <MensajeError tipo="banner" mensaje={loginError.message} />}
- 
+
       <Text style={styles.label}>
         Correo electrónico <Text style={styles.asterisk}>*</Text>
       </Text>
       <View style={[styles.inputContainer, emailRojo && styles.inputError]}>
         {/* Ícono del sobre: rojo si hay error, gris si no */}
         <FontAwesome name="envelope" size={15} color={emailRojo ? '#e05252' : '#ccc'} style={styles.icon} />
- 
+
         {/* Controller conecta este TextInput con el campo "email" del formulario */}
         <Controller
           control={control}
@@ -160,7 +168,7 @@ export default function Login({ navigation, setMostrarExito }) {
       <View style={[styles.inputContainer, passRojo && styles.inputError]}>
         {/* Ícono del candado */}
         <FontAwesome name="lock" size={17} color={passRojo ? '#e05252' : '#ccc'} style={styles.icon} />
- 
+
         {/* Controller conecta este TextInput con el campo "password" del formulario */}
         <Controller
           control={control}
@@ -215,9 +223,10 @@ export default function Login({ navigation, setMostrarExito }) {
         Los campos (<Text style={styles.asterisk}>*</Text>) son obligatorios
       </Text>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
- 
+
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
