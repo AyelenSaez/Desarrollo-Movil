@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image,ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import * as SecureStore from 'expo-secure-store'; // guarda datos de forma cifrada en el celular
 import { auth } from '../src/config/firebaseConfig';
 import MensajeError from '../components/MensajeError'; 
 // ESQUEMA DE VALIDACIÓN (zod)
@@ -20,7 +21,11 @@ const loginSchema = z.object({
     .string()                                         
     .min(1, 'Este campo es obligatorio'),             
 });
- 
+
+// Nombres con los que se guardan los datos de "Recordarme" en el celular
+const CLAVE_EMAIL = 'recordar_email';
+const CLAVE_PASSWORD = 'recordar_password';
+
 export default function Login({ navigation, setMostrarExito }) { 
   // ESTADOS LOCALES
   const [showPassword, setShowPassword] = useState(false); // true = contraseña visible
@@ -32,12 +37,45 @@ export default function Login({ navigation, setMostrarExito }) {
     control,                 // lo usa cada Controller para engancharse al formulario
     handleSubmit,            // valida y, si todo está bien, ejecuta la función de envío
     clearErrors,             // borra errores manualmente
+    reset,                   // cambia los valores del formulario (se usa para rellenar los campos)
     formState: { errors },   // objeto con los errores actuales (errors.email, errors.password)
   } = useForm({
     resolver: zodResolver(loginSchema),            // valida con el esquema de zod
     defaultValues: { email: '', password: '' },    // ambos campos arrancan vacíos
   });
- 
+
+  // AL ABRIR LA PANTALLA: si la última vez se tildó "Recordarme", rellena los campos
+  useEffect(() => {
+    const cargarDatosGuardados = async () => {
+      try {
+        const emailGuardado = await SecureStore.getItemAsync(CLAVE_EMAIL);
+        const passwordGuardada = await SecureStore.getItemAsync(CLAVE_PASSWORD);
+        if (emailGuardado && passwordGuardada) {
+          reset({ email: emailGuardado, password: passwordGuardada }); // rellena los campos
+          setRemember(true);                                           // deja el checkbox tildado
+        }
+      } catch (error) {
+        console.log('No se pudieron cargar los datos guardados:', error);
+      }
+    };
+    cargarDatosGuardados();
+  }, []);
+
+  // Guarda o borra los datos según el checkbox "Recordarme"
+  const actualizarDatosGuardados = async (email, password) => {
+    try {
+      if (remember) {
+        await SecureStore.setItemAsync(CLAVE_EMAIL, email);
+        await SecureStore.setItemAsync(CLAVE_PASSWORD, password);
+      } else {
+        await SecureStore.deleteItemAsync(CLAVE_EMAIL);
+        await SecureStore.deleteItemAsync(CLAVE_PASSWORD);
+      }
+    } catch (error) {
+      console.log('No se pudieron guardar los datos:', error);
+    }
+  };
+
   // ENVÍO DEL FORMULARIO:  Solo se ejecuta si la validación de zod pasó correctamente
   const onSubmit = async ({ email, password }) => {
     setLoginError(null); // limpia el error del intento anterior
@@ -45,6 +83,8 @@ export default function Login({ navigation, setMostrarExito }) {
     try {
       // Intenta iniciar sesión en Firebase
       await signInWithEmailAndPassword(auth, email.trim(), password);
+      // Solo si el login fue correcto se guardan (o borran) los datos de "Recordarme"
+      await actualizarDatosGuardados(email.trim(), password);
       // Navigation detecta la sesión y muestra la pantalla de login exitoso.
     } catch (error) {
       setMostrarExito?.(false); // el login falló: no mostrar la pantalla de éxito
@@ -70,14 +110,22 @@ export default function Login({ navigation, setMostrarExito }) {
       }
     }
   };
- 
+
     // Un campo se pinta rojo si tiene error de validación o si falló el login
   const emailRojo = !!errors.email || !!loginError?.fields;
   const passRojo = !!errors.password || !!loginError?.fields;
 
   // INTERFAZ
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#fff' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+    <ScrollView
+      contentContainerStyle={styles.container}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+    >
       <Image
         source={require('../assets/logo.png')}
         style={[styles.logo, loginError && { marginBottom: 20 }]}
@@ -92,7 +140,7 @@ export default function Login({ navigation, setMostrarExito }) {
       <View style={[styles.inputContainer, emailRojo && styles.inputError]}>
         {/* Ícono del sobre: rojo si hay error, gris si no */}
         <FontAwesome name="envelope" size={15} color={emailRojo ? '#e05252' : '#ccc'} style={styles.icon} />
- 
+
         {/* Controller conecta este TextInput con el campo "email" del formulario */}
         <Controller
           control={control}
@@ -120,7 +168,7 @@ export default function Login({ navigation, setMostrarExito }) {
       <View style={[styles.inputContainer, passRojo && styles.inputError]}>
         {/* Ícono del candado */}
         <FontAwesome name="lock" size={17} color={passRojo ? '#e05252' : '#ccc'} style={styles.icon} />
- 
+
         {/* Controller conecta este TextInput con el campo "password" del formulario */}
         <Controller
           control={control}
@@ -175,6 +223,7 @@ export default function Login({ navigation, setMostrarExito }) {
         Los campos (<Text style={styles.asterisk}>*</Text>) son obligatorios
       </Text>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
