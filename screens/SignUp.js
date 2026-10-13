@@ -16,6 +16,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useNotificacion } from "../components/Notificacion";
+import { registrarUsuario } from "../src/services/authService";
 
 
 // ---------------------------------------------------------------
@@ -181,7 +182,7 @@ function ReglasPassword({ password }) {
 // ---------------------------------------------------------------
 // Pantalla
 // ---------------------------------------------------------------
-export default function SignUp({ navigation }) {
+export default function SignUp({ navigation, setMostrarRegistroExito }) {
   const [cargando, setCargando] = useState(false);
   const [errorGeneral, setErrorGeneral] = useState("");
   const { mostrarNotificacion } = useNotificacion(); // avisos en pantalla (S3-08)
@@ -212,20 +213,35 @@ export default function SignUp({ navigation }) {
   const onSubmit = async (datos) => {
     setErrorGeneral("");
     setCargando(true);
+    // Si el registro sale bien, Navigation muestra "Registro exitoso" en vez de Home
+    // (igual que setMostrarExito en el Login)
+    setMostrarRegistroExito?.(true);
     try {
-      // TODO: acá va la creación de la cuenta con Firebase Auth
-      // (tarea "Registro: creación de cuenta con Firebase"), por ejemplo:
-      // await createUserWithEmailAndPassword(auth, datos.email, datos.password);
-      // Por ahora simulamos la espera para ver el estado de carga.
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Crea la cuenta en Firebase y guarda el nombre (src/services/authService.js)
+      const resultado = await registrarUsuario({
+        nombre: datos.nombre,
+        correo: datos.email,
+        contrasena: datos.password,
+      });
 
-      // Aviso en pantalla (S3-08) y pantalla de registro exitoso (S3-05).
-      // "replace" evita que el botón Atrás vuelva al formulario ya enviado.
-      // Nota para S3-07: Firebase inicia sesión al crear la cuenta y Navigation pasaría a Home;
-      // para que se vea esta pantalla hay que cerrar la sesión (signOut) después de crearla.
-      mostrarNotificacion("Tu cuenta fue creada correctamente.", "exito");
-      navigation.replace("RegistroExitoso");
+      if (!resultado.ok) {
+        // Falló: no mostrar "Registro exitoso" y pasar a la pantalla de registro fallido
+        setMostrarRegistroExito?.(false);
+        navigation.navigate("RegistroFallido", {
+          mensaje: resultado.mensaje,
+          codigo: resultado.codigo,
+        });
+        return;
+      }
+
+      // Salió bien: aviso en pantalla. Navigation ya detectó la sesión y muestra "Registro exitoso".
+      if (resultado.nombreGuardado) {
+        mostrarNotificacion("Tu cuenta fue creada correctamente.", "exito");
+      } else {
+        mostrarNotificacion("La cuenta se creó, pero no se pudo guardar el nombre.", "info");
+      }
     } catch (e) {
+      setMostrarRegistroExito?.(false);
       setErrorGeneral("No pudimos crear tu cuenta. Intentá de nuevo.");
     } finally {
       setCargando(false);
