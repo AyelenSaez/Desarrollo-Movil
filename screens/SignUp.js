@@ -10,12 +10,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useNotificacion } from "../components/Notificacion";
 
 
 // ---------------------------------------------------------------
@@ -48,6 +48,9 @@ const REGLAS_PASSWORD = [
   },
 ];
 
+// Mensaje para los campos vacíos (S3-03: campos obligatorios)
+const OBLIGATORIO = "Este campo es obligatorio";
+
 // ---------------------------------------------------------------
 // Validaciones con zod
 // ---------------------------------------------------------------
@@ -56,21 +59,21 @@ const schema = z
     nombre: z
       .string()
       .trim()
-      .min(1, "Ingresá tu nombre")
+      .min(1, OBLIGATORIO)
       .min(2, "El nombre debe tener al menos 2 caracteres"),
     email: z
       .string()
       .trim()
-      .min(1, "Ingresá tu correo electrónico")
+      .min(1, OBLIGATORIO)
       .email("Ingresá un correo electrónico válido"),
     password: z
       .string()
-      .min(1, "Ingresá una contraseña")
+      .min(1, OBLIGATORIO)
       .refine(
         (v) => REGLAS_PASSWORD.every((regla) => regla.cumple(v)),
         "La contraseña no cumple con los requisitos"
       ),
-    confirmPassword: z.string().min(1, "Confirmá tu contraseña"),
+    confirmPassword: z.string().min(1, OBLIGATORIO),
     terminos: z.boolean().refine((v) => v === true, {
       message: "Tenés que aceptar los términos y condiciones",
     }),
@@ -97,7 +100,7 @@ function Campo({ label, icono, error, esPassword, ...inputProps }) {
           <Ionicons
             name={icono}
             size={20}
-            color={COLORS.icono}
+            color={error ? COLORS.error : COLORS.icono} // rojo si hay error
             style={styles.iconoIzq}
           />
         ) : null}
@@ -124,7 +127,21 @@ function Campo({ label, icono, error, esPassword, ...inputProps }) {
         ) : null}
       </View>
 
-      {error ? <Text style={styles.textoError}>{error}</Text> : null}
+      <MensajeCampo mensaje={error} />
+    </View>
+  );
+}
+
+// ---------------------------------------------------------------
+// Mensaje de error debajo de un campo: ícono + texto en rojo (S3-03)
+// ---------------------------------------------------------------
+function MensajeCampo({ mensaje }) {
+  if (!mensaje) return null;
+
+  return (
+    <View style={styles.errorFila} accessibilityLiveRegion="polite">
+      <Ionicons name="alert-circle" size={14} color={COLORS.error} />
+      <Text style={styles.textoError}>{mensaje}</Text>
     </View>
   );
 }
@@ -167,6 +184,7 @@ function ReglasPassword({ password }) {
 export default function SignUp({ navigation }) {
   const [cargando, setCargando] = useState(false);
   const [errorGeneral, setErrorGeneral] = useState("");
+  const { mostrarNotificacion } = useNotificacion(); // avisos en pantalla (S3-08)
 
   const {
     control,
@@ -174,10 +192,12 @@ export default function SignUp({ navigation }) {
     watch,
     trigger,
     getValues,
+    clearErrors,             // borra el error de un campo al volver a tocarlo (S3-03)
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
-    mode: "onTouched",
+    // Sin "mode": se valida al presionar Registrarse, como pide S3-03 (igual que en el Login).
+    // Después del primer intento, cada campo se vuelve a validar mientras se escribe.
     defaultValues: {
       nombre: "",
       email: "",
@@ -199,8 +219,12 @@ export default function SignUp({ navigation }) {
       // Por ahora simulamos la espera para ver el estado de carga.
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      Alert.alert("¡Listo!", "Tu cuenta fue creada correctamente.");
-      // navigation.navigate("Login");
+      // Aviso en pantalla (S3-08) y pantalla de registro exitoso (S3-05).
+      // "replace" evita que el botón Atrás vuelva al formulario ya enviado.
+      // Nota para S3-07: Firebase inicia sesión al crear la cuenta y Navigation pasaría a Home;
+      // para que se vea esta pantalla hay que cerrar la sesión (signOut) después de crearla.
+      mostrarNotificacion("Tu cuenta fue creada correctamente.", "exito");
+      navigation.replace("RegistroExitoso");
     } catch (e) {
       setErrorGeneral("No pudimos crear tu cuenta. Intentá de nuevo.");
     } finally {
@@ -238,6 +262,7 @@ export default function SignUp({ navigation }) {
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
+              onFocus={() => clearErrors("nombre")} // quita el error al volver a tocar el campo
               autoCapitalize="words"
               error={errors.nombre?.message}
             />
@@ -256,6 +281,7 @@ export default function SignUp({ navigation }) {
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
+              onFocus={() => clearErrors("email")}
               keyboardType="email-address"
               autoComplete="email"
               error={errors.email?.message}
@@ -279,6 +305,7 @@ export default function SignUp({ navigation }) {
                 if (getValues("confirmPassword")) trigger("confirmPassword");
               }}
               onBlur={onBlur}
+              onFocus={() => clearErrors("password")}
               esPassword
               error={errors.password?.message}
             />
@@ -298,6 +325,7 @@ export default function SignUp({ navigation }) {
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
+              onFocus={() => clearErrors("confirmPassword")}
               esPassword
               error={errors.confirmPassword?.message}
             />
@@ -312,13 +340,16 @@ export default function SignUp({ navigation }) {
             <View style={styles.grupo}>
               <View style={styles.terminosFila}>
                 <TouchableOpacity
-                  onPress={() => onChange(!value)}
+                  onPress={() => {
+                    onChange(!value);
+                    clearErrors("terminos"); // quita el error al tocar la casilla
+                  }}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <Ionicons
                     name={value ? "checkbox" : "square-outline"}
                     size={20}
-                    color={value ? COLORS.verde : COLORS.icono}
+                    color={value ? COLORS.verde : errors.terminos ? COLORS.error : COLORS.icono}
                   />
                 </TouchableOpacity>
                 <Text style={styles.terminosTexto}>
@@ -333,9 +364,7 @@ export default function SignUp({ navigation }) {
                   </Text>
                 </Text>
               </View>
-              {errors.terminos?.message ? (
-                <Text style={styles.textoError}>{errors.terminos.message}</Text>
-              ) : null}
+              <MensajeCampo mensaje={errors.terminos?.message} />
             </View>
           )}
         />
@@ -409,7 +438,8 @@ const styles = StyleSheet.create({
   inputWrapError: { borderColor: COLORS.error },
   iconoIzq: { marginRight: 8 },
   input: { flex: 1, fontSize: 15, color: "#111827" },
-  textoError: { color: COLORS.error, fontSize: 12, marginTop: 4 },
+  errorFila: { flexDirection: "row", alignItems: "center", marginTop: 4 },
+  textoError: { color: COLORS.error, fontSize: 12, marginLeft: 4 },
   errorGeneral: { textAlign: "center", marginBottom: 8 },
   reglasBox: {
     backgroundColor: COLORS.fondoReglas,

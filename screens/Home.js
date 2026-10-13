@@ -1,17 +1,19 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
 import { signOut } from 'firebase/auth';
 import { auth } from '../src/config/firebaseConfig';
+import { useNotificacion } from '../components/Notificacion';
 
 export default function Home({ navigation }) {
+  const { mostrarNotificacion } = useNotificacion(); // avisos en pantalla (S3-08)
 
   const handleLogOut = async () => {
     try {
-      await signOut(auth);  
-      Alert.alert("Sesión cerrada", "Has cerrado sesión correctamente.");
+      await signOut(auth);
+      mostrarNotificacion('Sesión cerrada correctamente.', 'info');
       // El observador de Firebase muestra Login al cerrar la sesión.
     } catch (error) {
-      Alert.alert("Error", "Hubo un problema al cerrar sesión.");
+      mostrarNotificacion('Hubo un problema al cerrar sesión.', 'error');
     }
   };
 
@@ -35,8 +37,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   logo: {
-    width: 100,
-    height: 100,
+    width: '85%',
+    height: undefined,
+    aspectRatio: 2170 / 725, // proporción real de assets/logo.png (si no, se recorta)
+    resizeMode: 'contain',
     marginBottom: 20,
   },
   title: {
