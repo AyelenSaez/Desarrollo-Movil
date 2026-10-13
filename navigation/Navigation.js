@@ -8,6 +8,7 @@ import Login from '../screens/Login';
 import SignUp from '../screens/SignUp';
 import Home from '../screens/Home';
 import LoginExitoso from '../screens/LoginExitoso';
+import ForgotPassword from '../screens/ForgotPassword';
 import RegistroExitoso from '../screens/RegistroExitoso';
 
 const Stack = createStackNavigator();
@@ -52,6 +53,7 @@ export default function Navigation() {
             </Stack.Screen>
             <Stack.Screen name="SignUp" component={SignUp} options={{ headerShown: false }} />
             <Stack.Screen name="RegistroExitoso" component={RegistroExitoso} options={{ headerShown: false }} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPassword} options={{ headerShown: false }}/>
           </>
         )}
       </Stack.Navigator>

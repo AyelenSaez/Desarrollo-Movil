@@ -204,7 +204,7 @@ export default function Login({ navigation, setMostrarExito }) {
         </TouchableOpacity>
  
         {/* Enlace de recuperación (por ahora solo muestra una alerta) */}
-        <TouchableOpacity onPress={() => Alert.alert('Recuperar contraseña')}>
+        <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
           <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
         </TouchableOpacity>
       </View>
