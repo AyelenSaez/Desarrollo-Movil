@@ -52,7 +52,7 @@ export default function Navigation() {
 
   return (
     <NavigationContainer>
-        <Stack.Navigator>
+      <Stack.Navigator>
         {user && mostrarExito ? (
           <Stack.Screen name="LoginExitoso" options={{ headerShown: false }}>
             {() => <LoginExitoso onContinuar={() => setMostrarExito(false)} />}
@@ -66,16 +66,22 @@ export default function Navigation() {
         ) : (
           <>
             <Stack.Screen name="Login" options={{ title: 'Iniciar sesión' }}>
-              {(props) => <Login {...props} setMostrarExito={setMostrarExito}  />}
+              {(props) => <Login {...props} setMostrarExito={setMostrarExito} />}
             </Stack.Screen>
-            <Stack.Screen name="SignUp" options={{ headerShown: false }}>
-              {(props) => <SignUp {...props} setMostrarRegistroExito={setMostrarRegistroExito} />}
+
+            {/* SignUp recibe setMostrarRegistroExito, así que va con función hija (sin component=) */}
+            <Stack.Screen name="SignUp" options={{ title: 'Registro' }}>
+              {(props) => (
+                <SignUp {...props} setMostrarRegistroExito={setMostrarRegistroExito} />
+              )}
             </Stack.Screen>
+
             <Stack.Screen
               name="RegistroFallido"
               component={RegistroFallido}
               options={{ headerShown: false }}
             />
+
             {/* Barra de navegación con título y flecha para volver al Login */}
             <Stack.Screen
               name="ForgotPassword"
@@ -85,7 +91,7 @@ export default function Navigation() {
           </>
         )}
       </Stack.Navigator>
-      </NavigationContainer>
+    </NavigationContainer>
   );
 }
 
