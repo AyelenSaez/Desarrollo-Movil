@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { useForm, Controller } from 'react-hook-form';
@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { auth } from '../src/config/firebaseConfig';
 import MensajeError from '../components/MensajeError';
+import { useNotificacion } from '../components/Notificacion';
  
 // ESQUEMA DE VALIDACIÓN (zod)
 // Solo se pide el correo: no puede estar vacío y debe tener formato válido.
@@ -24,17 +25,20 @@ export default function ForgotPassword({ navigation }) {
   const [emailEnviado, setEmailEnviado] = useState('');   // correo al que se mandó el enlace (se usa para reenviar)
   const [envioError, setEnvioError] = useState(null);     // mensaje de error del envío (conexión, demasiados intentos, etc.)
   const [enviando, setEnviando] = useState(false);        // true mientras se espera la respuesta de Firebase
+  const { mostrarNotificacion } = useNotificacion();      // avisos en pantalla (S3-08)
  
   // CONFIGURACIÓN DEL FORMULARIO (react-hook-form)
   const {
     control,
     handleSubmit,
-    clearErrors,
-    formState: { errors },
+    watch,
   } = useForm({
     resolver: zodResolver(forgotSchema),
     defaultValues: { email: '' },
   });
+
+  // El botón solo se habilita cuando el campo tiene un correo válido
+  const correoValido = forgotSchema.safeParse({ email: watch('email') }).success;
  
   // PEDIR EL ENLACE A FIREBASE
   // Devuelve null si salió bien, o el texto del error si falló.
@@ -70,6 +74,7 @@ export default function ForgotPassword({ navigation }) {
     }
     setEmailEnviado(email.trim());
     setEnviado(true);           // salió bien: se pasa a la pantalla "Revise su correo"
+    mostrarNotificacion('Enlace enviado. Revise su bandeja de entrada o spam.', 'exito');
   };
  
   // REENVIAR: vuelve a pedir el enlace al mismo correo
@@ -79,9 +84,9 @@ export default function ForgotPassword({ navigation }) {
     const mensaje = await pedirEnlace(emailEnviado);
     setEnviando(false);
     if (mensaje) {
-      Alert.alert('Error', mensaje);
+      mostrarNotificacion(mensaje, 'error');
     } else {
-      Alert.alert('Enlace reenviado', 'Revise su bandeja de entrada o spam.');
+      mostrarNotificacion('Enlace reenviado. Revise su bandeja de entrada o spam.', 'exito');
     }
   };
  
@@ -136,14 +141,21 @@ export default function ForgotPassword({ navigation }) {
  
         {/* Banner de error del envío (solo aparece si falló) */}
         {envioError && <MensajeError tipo="banner" mensaje={envioError} />}
- 
-        <Text style={styles.label}>Correo electrónico</Text>
-        {/* Caja del campo: el borde se pone rojo si hay error */}
-        <View style={[styles.inputBox, (errors.email || envioError) && styles.inputError]}>
+
+        {/* Nota de campos obligatorios (antes de los campos, igual que en el Login) */}
+        <Text style={styles.requiredNote}>
+          Los campos (<Text style={styles.asterisk}>*</Text>) son obligatorios
+        </Text>
+
+        <Text style={styles.label}>
+          Correo electrónico <Text style={styles.asterisk}>*</Text>
+        </Text>
+        {/* Caja del campo: el borde se pone rojo si falló el envío */}
+        <View style={[styles.inputBox, envioError && styles.inputError]}>
           <FontAwesome
             name="envelope-o"
             size={16}
-            color={errors.email ? '#e05252' : '#0b2f5b'}
+            color={envioError ? '#e05252' : '#0b2f5b'}
             style={styles.icon}
           />
           {/* Controller conecta este TextInput con el campo "email" del formulario */}
@@ -159,19 +171,16 @@ export default function ForgotPassword({ navigation }) {
                 onBlur={onBlur}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                onFocus={() => { clearErrors('email'); setEnvioError(null); }}
+                onFocus={() => setEnvioError(null)}
               />
             )}
           />
         </View>
-        {/* Mensaje de error del correo (solo aparece si hay error de validación) */}
-        {errors.email && <MensajeError mensaje={errors.email.message} />}
- 
-        {/* Botón "Enviar enlace": valida y, si es válido, llama a onSubmit */}
+        {/* Botón "Enviar enlace": deshabilitado hasta que se escriba un correo válido */}
         <TouchableOpacity
-          style={[styles.button, enviando && styles.buttonDeshabilitado]}
+          style={[styles.button, (enviando || !correoValido) && styles.buttonDeshabilitado]}
           onPress={handleSubmit(onSubmit)}
-          disabled={enviando}
+          disabled={enviando || !correoValido}
         >
           <Text style={styles.buttonText}>{enviando ? 'Enviando...' : 'Enviar enlace'}</Text>
         </TouchableOpacity>
@@ -194,12 +203,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     alignItems: 'center',
     paddingHorizontal: 30,
-    paddingTop: 90,
+    paddingTop: 40,
     paddingBottom: 60,
     backgroundColor: '#fff',
   },
   containerCentrado: {
-    paddingTop: 140,
+    paddingTop: 90,
   },
   logo: {
     width: 300,
@@ -215,20 +224,30 @@ const styles = StyleSheet.create({
   },
   titulo: {
     alignSelf: 'flex-start',
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#0b2f5b',
     marginBottom: 12,
   },
   subtitulo: {
     alignSelf: 'flex-start',
-    fontSize: 16,
+    fontSize: 18,
     color: '#0b2f5b',
-    marginBottom: 40,
+    marginBottom: 30,
+  },
+  requiredNote: {
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+    fontSize: 14,
+    color: '#333',
+  },
+  asterisk: {
+    color: '#d32f2f',
   },
   label: {
     alignSelf: 'flex-start',
-    fontSize: 14,
+    fontSize: 18,
+    fontWeight: 'bold',
     color: '#0b2f5b',
     marginBottom: 8,
   },
@@ -251,7 +270,8 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: 40,
+    height: 44,
+    fontSize: 16,
   },
   button: {
     backgroundColor: '#4e7246',
@@ -266,14 +286,14 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
   },
   volverTexto: {
     marginTop: 20,
     color: '#0b2f5b',
-    fontSize: 14,
-    textDecorationLine: 'underline',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   // Pantalla "Revise su correo"
   iconoCirculo: {
@@ -286,26 +306,25 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   tituloCentrado: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#0b2f5b',
     textAlign: 'center',
     marginBottom: 20,
   },
   textoCentrado: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#0b2f5b',
     textAlign: 'center',
     marginBottom: 60,
   },
   reenviarTexto: {
     marginTop: 20,
-    fontSize: 14,
+    fontSize: 16,
     color: '#333',
   },
   reenviarBold: {
     fontWeight: 'bold',
     color: '#0b2f5b',
-    textDecorationLine: 'underline',
   },
 });

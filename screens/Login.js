@@ -37,6 +37,7 @@ export default function Login({ navigation, setMostrarExito }) {
     control,                 // lo usa cada Controller para engancharse al formulario
     handleSubmit,            // valida y, si todo está bien, ejecuta la función de envío
     clearErrors,             // borra errores manualmente
+    watch,                   // lee los valores actuales de los campos
     reset,                   // cambia los valores del formulario (se usa para rellenar los campos)
     formState: { errors },   // objeto con los errores actuales (errors.email, errors.password)
   } = useForm({
@@ -111,6 +112,10 @@ export default function Login({ navigation, setMostrarExito }) {
     }
   };
 
+  // El botón solo se habilita si los dos campos están completos
+  const [emailActual, passwordActual] = watch(['email', 'password']);
+  const camposCompletos = emailActual.trim().length > 0 && passwordActual.length > 0;
+
     // Un campo se pinta rojo si tiene error de validación o si falló el login
   const emailRojo = !!errors.email || !!loginError?.fields;
   const passRojo = !!errors.password || !!loginError?.fields;
@@ -133,6 +138,11 @@ export default function Login({ navigation, setMostrarExito }) {
 
       {/* Banner de error de login (solo aparece si falló el inicio de sesión) */}
             {loginError && <MensajeError tipo="banner" mensaje={loginError.message} />}
+
+      {/* ---------- NOTA DE CAMPOS OBLIGATORIOS (antes de los campos) ---------- */}
+      <Text style={styles.requiredNote}>
+        Los campos (<Text style={styles.asterisk}>*</Text>) son obligatorios
+      </Text>
 
       <Text style={styles.label}>
         Correo electrónico <Text style={styles.asterisk}>*</Text>
@@ -159,7 +169,7 @@ export default function Login({ navigation, setMostrarExito }) {
           )}
         />
       </View>
-      {/* Mensaje de error del correo (solo aparece si hay error) */}
+      {/* Mensaje de error del formato del correo (los de campo vacío no se muestran: el botón queda deshabilitado) */}
             {errors.email && <MensajeError mensaje={errors.email.message} />}
       <Text style={styles.label}>
           Contraseña <Text style={styles.asterisk}>*</Text>
@@ -190,8 +200,6 @@ export default function Login({ navigation, setMostrarExito }) {
           <FontAwesome name={showPassword ? "eye-slash" : "eye"} size={17} color={passRojo ? '#e05252' : '#ccc'} />
         </TouchableOpacity>
       </View>
-      {/* Mensaje de error de la contraseña (solo aparece si hay error) */}
-            {errors.password && <MensajeError mensaje={errors.password.message} />}
       {/* ---------- OPCIONES: RECORDARME / OLVIDÉ MI CONTRASEÑA ---------- */}
       <View style={styles.rowOptions}>
         {/* Checkbox: al tocarlo invierte el estado "remember" */}
@@ -209,7 +217,12 @@ export default function Login({ navigation, setMostrarExito }) {
         </TouchableOpacity>
       </View>
       {/* ---------- BOTÓN INICIAR SESIÓN ---------- */}
-      <TouchableOpacity style={styles.button} onPress={handleSubmit(onSubmit)}>
+      {/* Deshabilitado hasta que se completen los dos campos */}
+      <TouchableOpacity
+        style={[styles.button, !camposCompletos && styles.buttonDeshabilitado]}
+        onPress={handleSubmit(onSubmit)}
+        disabled={!camposCompletos}
+      >
         <Text style={styles.buttonText}>Iniciar sesión</Text>
       </TouchableOpacity>
       {/* ---------- ENLACE A REGISTRO ---------- */}
@@ -218,10 +231,6 @@ export default function Login({ navigation, setMostrarExito }) {
           ¿No tienes una cuenta? <Text style={styles.signUpBold}>Regístrate</Text>
         </Text>
       </TouchableOpacity>
-      {/* ---------- NOTA DE CAMPOS OBLIGATORIOS ---------- */}
-      <Text style={styles.requiredNote}>
-        Los campos (<Text style={styles.asterisk}>*</Text>) son obligatorios
-      </Text>
     </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -250,7 +259,7 @@ const styles = StyleSheet.create({
   },
   label: {
     alignSelf: 'flex-start',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
     marginTop: 10,
     color: '#0b2f5b',
@@ -271,7 +280,8 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: 40,
+    height: 44,
+    fontSize: 16,
   },
   rowOptions:{
     flexDirection: "row",
@@ -287,10 +297,11 @@ const styles = StyleSheet.create({
     },  
   rememberText:{
     marginLeft: 6,
-    fontSize: 13,
+    fontSize: 15,
     },
   forgotText:{
-    fontSize: 13,
+    fontSize: 15,
+    fontWeight: 'bold',
     color:'#0b2f5b',
     },      
   button: {
@@ -301,22 +312,26 @@ const styles = StyleSheet.create({
     width: "85%",
     alignItems: "center"
   },
+  buttonDeshabilitado: {
+    opacity: 0.6,
+  },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
   },
   signUpText: {
     marginTop: 20,
     color: '#0b2f5b',
-    fontSize:14,
+    fontSize: 16,
   },
   signUpBold: {
     fontWeight:"bold",
   },
   requiredNote: {
-    marginTop: 100,
-    fontSize: 11,
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+    fontSize: 14,
     color: "#333"
   },
   inputError: {

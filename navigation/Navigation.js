@@ -76,7 +76,12 @@ export default function Navigation() {
               component={RegistroFallido}
               options={{ headerShown: false }}
             />
-            <Stack.Screen name="ForgotPassword" component={ForgotPassword} options={{ headerShown: false }}/>
+            {/* Barra de navegación con título y flecha para volver al Login */}
+            <Stack.Screen
+              name="ForgotPassword"
+              component={ForgotPassword}
+              options={{ title: 'Recuperar contraseña', headerBackTitle: 'Volver' }}
+            />
           </>
         )}
       </Stack.Navigator>
