@@ -15,21 +15,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useNotificacion } from "../components/Notificacion";
-import { registrarUsuario } from "../src/services/authService";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../src/config/firebaseConfig";
+import MensajeError from "../components/MensajeError"; // el mismo que usa Login
 
-
-// ---------------------------------------------------------------
-// Colores: son aproximados. Ajustalos con los valores reales del
-// Figma (modo Dev / Inspect).
-// ---------------------------------------------------------------
+// Colores tomados de Login.js para que las dos pantallas se vean igual
 const COLORS = {
-  azul: "#0B3A6B",
-  verde: "#4B6B3A",
+  azul: "#0b2f5b",
+  verde: "#4e7246",
   borde: "#C9CED6",
   placeholder: "#9AA1AB",
   icono: "#6B7280",
-  error: "#D32F2F",
+  error: "#e05252",
+  asterisco: "#d32f2f",
   ok: "#2E7D32",
   fondoReglas: "#F3F4F6",
   blanco: "#FFFFFF",
@@ -49,12 +47,11 @@ const REGLAS_PASSWORD = [
   },
 ];
 
-// Mensaje para los campos vacíos (S3-03: campos obligatorios)
+// ---------------------------------------------------------------
+// Validaciones con zod (mensajes alineados con los del Login)
+// ---------------------------------------------------------------
 const OBLIGATORIO = "Este campo es obligatorio";
 
-// ---------------------------------------------------------------
-// Validaciones con zod
-// ---------------------------------------------------------------
 const schema = z
   .object({
     nombre: z
@@ -62,11 +59,16 @@ const schema = z
       .trim()
       .min(1, OBLIGATORIO)
       .min(2, "El nombre debe tener al menos 2 caracteres"),
+    apellido: z
+      .string()
+      .trim()
+      .min(1, OBLIGATORIO)
+      .min(2, "El apellido debe tener al menos 2 caracteres"),
     email: z
       .string()
       .trim()
       .min(1, OBLIGATORIO)
-      .email("Ingresá un correo electrónico válido"),
+      .email("El formato del correo electrónico no es válido"),
     password: z
       .string()
       .min(1, OBLIGATORIO)
@@ -76,7 +78,7 @@ const schema = z
       ),
     confirmPassword: z.string().min(1, OBLIGATORIO),
     terminos: z.boolean().refine((v) => v === true, {
-      message: "Tenés que aceptar los términos y condiciones",
+      message: "Debe aceptar los términos y condiciones",
     }),
   })
   .refine((datos) => datos.password === datos.confirmPassword, {
@@ -101,7 +103,7 @@ function Campo({ label, icono, error, esPassword, ...inputProps }) {
           <Ionicons
             name={icono}
             size={20}
-            color={error ? COLORS.error : COLORS.icono} // rojo si hay error
+            color={error ? COLORS.error : COLORS.icono}
             style={styles.iconoIzq}
           />
         ) : null}
@@ -122,27 +124,18 @@ function Campo({ label, icono, error, esPassword, ...inputProps }) {
             <Ionicons
               name={oculto ? "eye-outline" : "eye-off-outline"}
               size={20}
-              color={COLORS.icono}
+              color={error ? COLORS.error : COLORS.icono}
             />
           </TouchableOpacity>
         ) : null}
       </View>
 
-      <MensajeCampo mensaje={error} />
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------
-// Mensaje de error debajo de un campo: ícono + texto en rojo (S3-03)
-// ---------------------------------------------------------------
-function MensajeCampo({ mensaje }) {
-  if (!mensaje) return null;
-
-  return (
-    <View style={styles.errorFila} accessibilityLiveRegion="polite">
-      <Ionicons name="alert-circle" size={14} color={COLORS.error} />
-      <Text style={styles.textoError}>{mensaje}</Text>
+      {/* Mismo componente de error que usa Login */}
+      {error ? (
+        <View style={styles.errorWrap}>
+          <MensajeError mensaje={error} />
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -185,7 +178,6 @@ function ReglasPassword({ password }) {
 export default function SignUp({ navigation, setMostrarRegistroExito }) {
   const [cargando, setCargando] = useState(false);
   const [errorGeneral, setErrorGeneral] = useState("");
-  const { mostrarNotificacion } = useNotificacion(); // avisos en pantalla (S3-08)
 
   const {
     control,
@@ -193,14 +185,13 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
     watch,
     trigger,
     getValues,
-    clearErrors,             // borra el error de un campo al volver a tocarlo (S3-03)
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
-    // Sin "mode": se valida al presionar Registrarse, como pide S3-03 (igual que en el Login).
-    // Después del primer intento, cada campo se vuelve a validar mientras se escribe.
+    mode: "onTouched",
     defaultValues: {
       nombre: "",
+      apellido: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -210,40 +201,43 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
 
   const password = watch("password");
 
-  const onSubmit = async (datos) => {
+  // Solo se ejecuta si la validación de zod pasó correctamente
+  const onSubmit = async ({ email, password }) => {
     setErrorGeneral("");
     setCargando(true);
-    // Si el registro sale bien, Navigation muestra "Registro exitoso" en vez de Home
-    // (igual que setMostrarExito en el Login)
+    // Igual que en el Login: se avisa antes a Navigation para que, cuando
+    // Firebase inicie sesión al crear la cuenta, muestre "Cuenta creada"
+    // y no salte directo a Home.
     setMostrarRegistroExito?.(true);
     try {
-      // Crea la cuenta en Firebase y guarda el nombre (src/services/authService.js)
-      const resultado = await registrarUsuario({
-        nombre: datos.nombre,
-        correo: datos.email,
-        contrasena: datos.password,
-      });
-
-      if (!resultado.ok) {
-        // Falló: no mostrar "Registro exitoso" y pasar a la pantalla de registro fallido
-        setMostrarRegistroExito?.(false);
-        navigation.navigate("RegistroFallido", {
-          mensaje: resultado.mensaje,
-          codigo: resultado.codigo,
-        });
-        return;
+      await createUserWithEmailAndPassword(auth, email.trim(), password);
+      // Navigation detecta la sesión y muestra la pantalla "Cuenta creada".
+    } catch (error) {
+      setMostrarRegistroExito?.(false); // falló: no mostrar la pantalla de éxito
+      console.log("Error de registro:", error.code, error.message);
+      switch (error.code) {
+        case "auth/email-already-in-use":
+          setErrorGeneral("El correo electrónico ya está registrado.");
+          break;
+        case "auth/invalid-email":
+          setErrorGeneral("El formato del correo electrónico no es válido");
+          break;
+        case "auth/weak-password":
+          setErrorGeneral("La contraseña es demasiado débil.");
+          break;
+        case "auth/network-request-failed":
+          setErrorGeneral("Error de conexión, por favor intenta más tarde.");
+          break;
+        case "auth/invalid-api-key":
+          setErrorGeneral(
+            "La clave API de Firebase no es válida. Revisa el archivo .env."
+          );
+          break;
+        default:
+          setErrorGeneral(
+            "Hubo un problema al crear la cuenta. Intente nuevamente."
+          );
       }
-
-      // Salió bien: aviso en pantalla. Navigation ya detectó la sesión y muestra "Registro exitoso".
-      if (resultado.nombreGuardado) {
-        mostrarNotificacion("Tu cuenta fue creada correctamente.", "exito");
-      } else {
-        mostrarNotificacion("La cuenta se creó, pero no se pudo guardar el nombre.", "info");
-      }
-    } catch (e) {
-      setMostrarRegistroExito?.(false);
-      setErrorGeneral("No pudimos crear tu cuenta. Intentá de nuevo.");
-    } finally {
       setCargando(false);
     }
   };
@@ -257,13 +251,17 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
         contentContainerStyle={styles.contenido}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Cambiá la ruta si el logo tiene otro nombre en /assets */}
         <Image
           source={require("../assets/logo.png")}
           style={styles.logo}
           resizeMode="contain"
         />
         <View style={styles.separador} />
+
+        {/* Banner de error general (igual que el del Login) */}
+        {errorGeneral ? (
+          <MensajeError tipo="banner" mensaje={errorGeneral} />
+        ) : null}
 
         <Text style={styles.titulo}>Crear cuenta</Text>
 
@@ -274,13 +272,29 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
           render={({ field: { onChange, onBlur, value } }) => (
             <Campo
               label="Nombre"
-              placeholder="Nombre"
+              placeholder="Ej: Juan"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              onFocus={() => clearErrors("nombre")} // quita el error al volver a tocar el campo
               autoCapitalize="words"
               error={errors.nombre?.message}
+            />
+          )}
+        />
+
+        {/* Apellido */}
+        <Controller
+          control={control}
+          name="apellido"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Campo
+              label="Apellido"
+              placeholder="Ej: Pérez"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              autoCapitalize="words"
+              error={errors.apellido?.message}
             />
           )}
         />
@@ -293,11 +307,10 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
             <Campo
               label="Correo electrónico"
               icono="mail-outline"
-              placeholder="Correo electrónico"
+              placeholder="ejemplo@correo.com"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              onFocus={() => clearErrors("email")}
               keyboardType="email-address"
               autoComplete="email"
               error={errors.email?.message}
@@ -313,7 +326,7 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
             <Campo
               label="Contraseña"
               icono="lock-closed-outline"
-              placeholder="Contraseña"
+              placeholder="Ej: Prueba123!"
               value={value}
               onChangeText={(texto) => {
                 onChange(texto);
@@ -321,7 +334,6 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
                 if (getValues("confirmPassword")) trigger("confirmPassword");
               }}
               onBlur={onBlur}
-              onFocus={() => clearErrors("password")}
               esPassword
               error={errors.password?.message}
             />
@@ -337,11 +349,10 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
             <Campo
               label="Confirmar contraseña"
               icono="lock-closed-outline"
-              placeholder="Confirmar contraseña"
+              placeholder="Repita su contraseña"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              onFocus={() => clearErrors("confirmPassword")}
               esPassword
               error={errors.confirmPassword?.message}
             />
@@ -356,16 +367,13 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
             <View style={styles.grupo}>
               <View style={styles.terminosFila}>
                 <TouchableOpacity
-                  onPress={() => {
-                    onChange(!value);
-                    clearErrors("terminos"); // quita el error al tocar la casilla
-                  }}
+                  onPress={() => onChange(!value)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
                   <Ionicons
                     name={value ? "checkbox" : "square-outline"}
                     size={20}
-                    color={value ? COLORS.verde : errors.terminos ? COLORS.error : COLORS.icono}
+                    color={value ? COLORS.verde : COLORS.icono}
                   />
                 </TouchableOpacity>
                 <Text style={styles.terminosTexto}>
@@ -380,16 +388,14 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
                   </Text>
                 </Text>
               </View>
-              <MensajeCampo mensaje={errors.terminos?.message} />
+              {errors.terminos?.message ? (
+                <View style={styles.errorWrap}>
+                  <MensajeError mensaje={errors.terminos.message} />
+                </View>
+              ) : null}
             </View>
           )}
         />
-
-        {errorGeneral ? (
-          <Text style={[styles.textoError, styles.errorGeneral]}>
-            {errorGeneral}
-          </Text>
-        ) : null}
 
         {/* Botón */}
         <TouchableOpacity
@@ -404,10 +410,15 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
           )}
         </TouchableOpacity>
 
+        {/* Leyenda de campos obligatorios (S14-11) */}
+        <Text style={styles.leyenda}>
+          Todos los campos (<Text style={styles.asterisco}>*</Text>) son
+          obligatorios
+        </Text>
+
         {/* Link al login */}
         <View style={styles.pie}>
           <Text style={styles.pieTexto}>¿Ya tienes una cuenta? </Text>
-          {/* Cambiá "Login" por el nombre con que está registrada la ruta */}
           <TouchableOpacity onPress={() => navigation.navigate("Login")}>
             <Text style={styles.pieLink}>Inicia sesión</Text>
           </TouchableOpacity>
@@ -421,7 +432,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: COLORS.blanco },
   contenido: {
     paddingHorizontal: 20,
-    paddingTop: 56,
+    paddingTop: 24, // más chico que antes: ahora la pantalla tiene header
     paddingBottom: 32,
   },
   logo: { width: "100%", height: 80 },
@@ -441,7 +452,7 @@ const styles = StyleSheet.create({
   },
   grupo: { marginBottom: 14 },
   label: { fontSize: 14, color: COLORS.azul, marginBottom: 6 },
-  asterisco: { color: COLORS.error },
+  asterisco: { color: COLORS.asterisco },
   inputWrap: {
     flexDirection: "row",
     alignItems: "center",
@@ -454,9 +465,6 @@ const styles = StyleSheet.create({
   inputWrapError: { borderColor: COLORS.error },
   iconoIzq: { marginRight: 8 },
   input: { flex: 1, fontSize: 15, color: "#111827" },
-  errorFila: { flexDirection: "row", alignItems: "center", marginTop: 4 },
-  textoError: { color: COLORS.error, fontSize: 12, marginLeft: 4 },
-  errorGeneral: { textAlign: "center", marginBottom: 8 },
   reglasBox: {
     backgroundColor: COLORS.fondoReglas,
     borderRadius: 8,
@@ -480,6 +488,12 @@ const styles = StyleSheet.create({
   },
   botonDeshabilitado: { opacity: 0.7 },
   botonTexto: { color: COLORS.blanco, fontSize: 16, fontWeight: "700" },
+  leyenda: {
+    fontSize: 12,
+    color: "#333",
+    textAlign: "center",
+    marginTop: 12,
+  },
   pie: {
     flexDirection: "row",
     justifyContent: "center",
@@ -487,4 +501,5 @@ const styles = StyleSheet.create({
   },
   pieTexto: { fontSize: 13, color: "#111827" },
   pieLink: { fontSize: 13, fontWeight: "700", color: "#111827" },
+  errorWrap: { marginTop: 20 },
 });
