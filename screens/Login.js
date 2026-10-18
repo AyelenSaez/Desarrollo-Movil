@@ -45,6 +45,7 @@ export default function Login({ navigation, setMostrarExito }) {
     defaultValues: { email: '', password: '' },    // ambos campos arrancan vacíos
   });
 
+
   // AL ABRIR LA PANTALLA: si la última vez se tildó "Recordarme", rellena los campos
   useEffect(() => {
     const cargarDatosGuardados = async () => {
@@ -116,9 +117,9 @@ export default function Login({ navigation, setMostrarExito }) {
   const [emailActual, passwordActual] = watch(['email', 'password']);
   const camposCompletos = emailActual.trim().length > 0 && passwordActual.length > 0;
 
-    // Un campo se pinta rojo si tiene error de validación o si falló el login
-  const emailRojo = !!errors.email || !!loginError?.fields;
-  const passRojo = !!errors.password || !!loginError?.fields;
+// Un campo se pinta rojo solo si tiene un error de formato (no si está vacío) o si falló el login
+const emailRojo = (!!errors.email && emailActual.trim() !== '') || !!loginError?.fields;
+const passRojo = (!!errors.password && passwordActual !== '') || !!loginError?.fields;
 
   // INTERFAZ
   return (
@@ -158,7 +159,7 @@ export default function Login({ navigation, setMostrarExito }) {
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
               style={styles.input}
-              placeholder="Ingrese su correo"
+              placeholder="usuario@correo.com"
               value={value}                          // valor guardado en el formulario
               onChangeText={onChange}                // actualiza el formulario al escribir
               onBlur={onBlur}                        // avisa cuando el usuario sale del campo
@@ -169,8 +170,8 @@ export default function Login({ navigation, setMostrarExito }) {
           )}
         />
       </View>
-      {/* Mensaje de error del formato del correo (los de campo vacío no se muestran: el botón queda deshabilitado) */}
-            {errors.email && <MensajeError mensaje={errors.email.message} />}
+      {/* Solo se muestra si hay error Y el campo no está vacío (el vacío lo maneja el botón deshabilitado) */}
+      {errors.email && emailActual.trim() !== '' && <MensajeError mensaje={errors.email.message} />}
       <Text style={styles.label}>
           Contraseña <Text style={styles.asterisk}>*</Text>
       </Text>
@@ -186,7 +187,7 @@ export default function Login({ navigation, setMostrarExito }) {
           render={({ field: { onChange, onBlur, value } }) => (
             <TextInput
               style={styles.input}
-              placeholder="Ingrese su contraseña"
+              placeholder="********"
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
@@ -208,15 +209,15 @@ export default function Login({ navigation, setMostrarExito }) {
             name={remember ? 'check-square-o' : 'square-o'}   // tildado o vacío según el estado
             size={18}
             color="#333"/>
-          <Text style={styles.rememberText}>Recordarme</Text>
+          <Text style={styles.rememberText}>Recordar</Text>
         </TouchableOpacity>
- 
+
         {/* Enlace de recuperación (por ahora solo muestra una alerta) */}
         <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
           <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
         </TouchableOpacity>
       </View>
-      {/* ---------- BOTÓN INICIAR SESIÓN ---------- */}
+    {/* ---------- BOTÓN INICIAR SESIÓN ---------- */}
       {/* Deshabilitado hasta que se completen los dos campos */}
       <TouchableOpacity
         style={[styles.button, !camposCompletos && styles.buttonDeshabilitado]}
@@ -225,6 +226,7 @@ export default function Login({ navigation, setMostrarExito }) {
       >
         <Text style={styles.buttonText}>Iniciar sesión</Text>
       </TouchableOpacity>
+
       {/* ---------- ENLACE A REGISTRO ---------- */}
       <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
         <Text style={styles.signUpText}>
@@ -315,6 +317,7 @@ const styles = StyleSheet.create({
   buttonDeshabilitado: {
     opacity: 0.6,
   },
+
   buttonText: {
     color: '#fff',
     fontSize: 18,
