@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
@@ -14,6 +15,7 @@ const firebaseConfig = {
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
 let auth = null;
+let db = null;
 if (isFirebaseConfigured) {
   const app = initializeApp(firebaseConfig);
   try {
@@ -22,6 +24,13 @@ if (isFirebaseConfigured) {
     if (error.code !== 'auth/already-initialized') throw error;
     auth = getAuth(app);
   }
+  // Base de datos Firestore (la usan los servicios, nunca las pantallas directamente).
+  // Long polling: en React Native / Expo Go la conexión por defecto se queda colgada.
+  try {
+    db = initializeFirestore(app, { experimentalForceLongPolling: true });
+  } catch (error) {
+    db = getFirestore(app); // ya estaba inicializada (recarga en caliente)
+  }
 }
 
-export { auth };
+export { auth, db };
