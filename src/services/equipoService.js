@@ -9,6 +9,7 @@ import {
   query,
   where,
   limit,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebaseConfig';
 import {
@@ -18,22 +19,29 @@ import {
   estadoEquipoSchema,
 } from '../models/Equipo';
 import { LISTA_TIPOS_EQUIPO } from '../constants/tiposEquipo';
+import { traducirErrorFirestore } from '../utils/firebaseErrors';
 
 // Todas las funciones del CRUD de equipos, tipos y estados.
 // Igual que authService: no lanzan excepciones, siempre devuelven
 // { ok: true, ... } o { ok: false, codigo, mensaje }, así las pantallas solo revisan `ok`.
 
-const MENSAJES_ERROR = {
-  'permission-denied': 'No tenés permisos para realizar esta acción.',
-  'unavailable': 'No hay conexión a internet. Revisá tu conexión e intentá de nuevo.',
-  'not-found': 'El registro no existe.',
-};
-const MENSAJE_GENERICO = 'Hubo un problema con la base de datos. Intentá de nuevo.';
+// Tiempo máximo de espera al escribir. Sin internet, Firestore no devuelve
+// un error: deja la operación pendiente. Por eso se corta la espera.
+const TIEMPO_ESPERA_MS = 8000;
 
+function conTiempoLimite(promesa) {
+  let temporizador;
+  const limite = new Promise((_, reject) => {
+    temporizador = setTimeout(() => reject({ code: 'sin-conexion' }), TIEMPO_ESPERA_MS);
+  });
+  return Promise.race([promesa, limite]).finally(() => clearTimeout(temporizador));
+}
+
+// Todas las funciones pasan por acá: el mensaje sale de traducirErrorFirestore
 function resultadoError(contexto, error) {
   const codigo = error?.code ?? 'desconocido';
   console.error(`Error al ${contexto}:`, codigo, error?.message);
-  return { ok: false, codigo, mensaje: MENSAJES_ERROR[codigo] ?? MENSAJE_GENERICO };
+  return { ok: false, codigo, mensaje: traducirErrorFirestore(codigo) };
 }
 
 // Valida con zod y devuelve los datos limpios, o el primer mensaje de error
@@ -60,7 +68,7 @@ async function obtener(coleccion, campoId, id) {
   try {
     const snap = await getDoc(doc(db, coleccion, id));
     if (!snap.exists()) {
-      return { ok: false, codigo: 'not-found', mensaje: MENSAJES_ERROR['not-found'] };
+      return { ok: false, codigo: 'not-found', mensaje: traducirErrorFirestore('not-found') };
     }
     return { ok: true, dato: { [campoId]: snap.id, ...snap.data() } };
   } catch (error) {
@@ -72,7 +80,7 @@ async function crear(coleccion, campoId, schema, datos) {
   const validacion = validar(schema, datos);
   if (!validacion.ok) return validacion;
   try {
-    const ref = await addDoc(collection(db, coleccion), validacion.datos);
+    const ref = await conTiempoLimite(addDoc(collection(db, coleccion), validacion.datos));
     return { ok: true, dato: { [campoId]: ref.id, ...validacion.datos } };
   } catch (error) {
     return resultadoError(`crear ${coleccion}`, error);
@@ -84,7 +92,7 @@ async function actualizar(coleccion, schema, id, datos) {
   const validacion = validar(schema.partial(), datos);
   if (!validacion.ok) return validacion;
   try {
-    await updateDoc(doc(db, coleccion, id), validacion.datos);
+    await conTiempoLimite(updateDoc(doc(db, coleccion, id), validacion.datos));
     return { ok: true };
   } catch (error) {
     return resultadoError(`actualizar ${coleccion}`, error);
@@ -93,7 +101,7 @@ async function actualizar(coleccion, schema, id, datos) {
 
 async function eliminar(coleccion, id) {
   try {
-    await deleteDoc(doc(db, coleccion, id));
+    await conTiempoLimite(deleteDoc(doc(db, coleccion, id)));
     return { ok: true };
   } catch (error) {
     return resultadoError(`eliminar ${coleccion}`, error);
@@ -166,6 +174,80 @@ export async function listarEquipos() {
 
   return { ok: true, datos };
 }
+
+// ---------- VERIFICAR DUPLICADOS Y REGISTRAR EQUIPO (S4-08 / S4-09) ----------
+
+/**
+ * S4-08: consulta si ya existe otro equipo con el mismo nombre y tipo.
+ * Firestore no tiene campos únicos, por eso se consulta antes de guardar.
+ * idExcluir: id del equipo que se está modificando (se ignora a sí mismo).
+ * Devuelve { ok: true } o { ok: false, codigo: 'duplicado', mensaje }.
+ */
+export async function verificarDuplicado(nombre_equipo, id_tipoeq, idExcluir = null) {
+  const nombre = String(nombre_equipo ?? '').trim();
+
+  if (!nombre || !id_tipoeq) {
+    return {
+      ok: false,
+      codigo: 'validacion',
+      mensaje: 'Falta el nombre o el tipo del equipo para verificar duplicados.',
+    };
+  }
+
+  try {
+    const q = query(
+      collection(db, COLECCIONES.EQUIPOS),
+      where('nombre_equipo', '==', nombre),
+      where('id_tipoeq', '==', id_tipoeq)
+    );
+    const snap = await getDocs(q);
+    const hayOtroIgual = snap.docs.some((d) => d.id !== idExcluir);
+
+    if (hayOtroIgual) {
+      return {
+        ok: false,
+        codigo: 'duplicado',
+        mensaje: 'Ya existe un equipo con el mismo nombre y tipo.',
+      };
+    }
+    return { ok: true };
+  } catch (error) {
+    return resultadoError('verificar duplicados de equipos', error);
+  }
+}
+
+/**
+ * S4-09: crea un equipo. Valida con equipoSchema, verifica que no esté
+ * duplicado y lo guarda en "equipos" con su fecha de alta.
+ * @param {{ id_tipoeq: string, id_estadoeq: string, nombre_equipo: string, cantidad_equipo: number }} datos
+ * Devuelve { ok: true, dato, mensaje } o { ok: false, codigo, mensaje }.
+ */
+export async function registrarEquipo(datos) {
+  const validacion = validar(equipoSchema, datos);
+  if (!validacion.ok) return validacion;
+
+  const { nombre_equipo, id_tipoeq } = validacion.datos;
+  const duplicado = await verificarDuplicado(nombre_equipo, id_tipoeq);
+  if (!duplicado.ok) return duplicado;
+
+  try {
+    const ref = await conTiempoLimite(
+      addDoc(collection(db, COLECCIONES.EQUIPOS), {
+        ...validacion.datos,
+        // Si en el diagrama la fecha de alta se llama distinto, cambiá este nombre
+        fecha_alta: serverTimestamp(),
+      })
+    );
+    return {
+      ok: true,
+      dato: { id_equipo: ref.id, ...validacion.datos },
+      mensaje: 'Equipo registrado correctamente.',
+    };
+  } catch (error) {
+    return resultadoError('registrar equipo', error);
+  }
+}
+
 // ---------- TIPOS DE EQUIPOS ----------
 
 export const obtenerTiposEquipo = () => listar(COLECCIONES.TIPOS_EQUIPOS, 'id_tipoeq');

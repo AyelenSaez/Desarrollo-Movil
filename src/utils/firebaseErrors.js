@@ -18,3 +18,29 @@ const MENSAJE_GENERICO = 'Hubo un problema al registrar el usuario. Intentá de 
 export function traducirErrorFirebase(codigo) {
   return MENSAJES_ERROR[codigo] ?? MENSAJE_GENERICO;
 }
+
+// ---------------------------------------------------------------
+// Errores de Firestore (las funciones de equipos, tipos y estados).
+// 'sin-conexion' no es un código de Firebase: lo genera equipoService
+// cuando una escritura tarda demasiado (sin internet, Firestore no
+// devuelve error: deja la operación pendiente).
+// ---------------------------------------------------------------
+
+const MENSAJES_ERROR_FIRESTORE = {
+  'permission-denied': 'No tenés permisos para realizar esta acción.',
+  'unauthenticated': 'Tenés que iniciar sesión para realizar esta acción.',
+  'not-found': 'El registro no existe o ya fue eliminado.',
+  'unavailable': 'No hay conexión a internet. Revisá tu conexión e intentá de nuevo.',
+  'sin-conexion': 'No hay conexión a internet. Revisá tu conexión e intentá de nuevo.',
+  'deadline-exceeded': 'La operación tardó demasiado. Revisá tu conexión e intentá de nuevo.',
+  'already-exists': 'Ya existe un registro con esos datos.',
+  'resource-exhausted': 'Se superó el límite de uso de la base de datos. Intentá más tarde.',
+  'aborted': 'La operación fue interrumpida. Intentá de nuevo.',
+  'internal': 'Ocurrió un error en el servidor. Intentá de nuevo más tarde.',
+};
+
+const MENSAJE_GENERICO_FIRESTORE = 'Hubo un problema con la base de datos. Intentá de nuevo.';
+
+export function traducirErrorFirestore(codigo) {
+  return MENSAJES_ERROR_FIRESTORE[codigo] ?? MENSAJE_GENERICO_FIRESTORE;
+}
