@@ -130,6 +130,42 @@ export const actualizarEquipo = (id, datos) =>
 
 export const eliminarEquipo = (id) => eliminar(COLECCIONES.EQUIPOS, id);
 
+/**
+ * Lista todos los equipos con nombre, tipo, cantidad y estado,
+ * ordenados por nombre, para mostrarlos en la pantalla de listado.
+ * Devuelve { ok: true, datos } o { ok: false, codigo, mensaje }.
+ */
+export async function listarEquipos() {
+  const [equipos, tipos, estados] = await Promise.all([
+    obtenerEquipos(),
+    obtenerTiposEquipo(),
+    obtenerEstadosEquipo(),
+  ]);
+
+  if (!equipos.ok) return equipos;
+  if (!tipos.ok) return tipos;
+  if (!estados.ok) return estados;
+
+  // Diccionarios id -> nombre, para reemplazar los id por texto legible
+  const nombreTipo = Object.fromEntries(
+    tipos.datos.map((t) => [t.id_tipoeq, t.nombre_tipoeq])
+  );
+  const nombreEstado = Object.fromEntries(
+    estados.datos.map((e) => [e.id_estadoeq, e.nombre_estadoeq])
+  );
+
+  const datos = equipos.datos
+    .map((e) => ({
+      id_equipo: e.id_equipo,
+      nombre: e.nombre_equipo,
+      tipo: nombreTipo[e.id_tipoeq] ?? 'Sin tipo',
+      cantidad: e.cantidad_equipo,
+      estado: nombreEstado[e.id_estadoeq] ?? 'Sin estado',
+    }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
+
+  return { ok: true, datos };
+}
 // ---------- TIPOS DE EQUIPOS ----------
 
 export const obtenerTiposEquipo = () => listar(COLECCIONES.TIPOS_EQUIPOS, 'id_tipoeq');
