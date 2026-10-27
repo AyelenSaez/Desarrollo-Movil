@@ -163,7 +163,8 @@ export async function listarEquipos() {
   const datos = equipos.datos
     .map((e) => ({
       id_equipo: e.id_equipo,
-      nombre: e.nombre_equipo,
+      // Si el documento no tiene nombre_equipo, no rompe el orden de la lista
+      nombre: e.nombre_equipo ?? 'Sin nombre',
       tipo: nombreTipo[e.id_tipoeq] ?? 'Sin tipo',
       cantidad: e.cantidad_equipo,
       estado: nombreEstado[e.id_estadoeq] ?? 'Sin estado',
