@@ -21,6 +21,13 @@ export default function Home({ navigation }) {
     <View style={styles.container}>
       <Image source={require('../assets/logo.png')} style={styles.logo} />
       <Text style={styles.title}>Bienvenido a la aplicación</Text>
+      {/* Acceso a la pantalla de Equipos */}
+      <TouchableOpacity
+        style={[styles.button, styles.buttonEquipos]}
+        onPress={() => navigation.navigate('ListadoEquipos')}
+      >
+        <Text style={styles.buttonText}>Equipos</Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.button} onPress={handleLogOut}>
         <Text style={styles.buttonText}>Cerrar sesión</Text>
       </TouchableOpacity>
@@ -54,6 +61,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     borderRadius: 5,
     marginTop: 20,
+  },
+  buttonEquipos: {
+    backgroundColor: '#4e7246',
   },
   buttonText: {
     color: '#fff',

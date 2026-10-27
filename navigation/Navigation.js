@@ -11,6 +11,9 @@ import Home from '../screens/Home';
 import LoginExitoso from '../screens/LoginExitoso';
 import ForgotPassword from '../screens/ForgotPassword';
 import RegistroExitoso from '../screens/RegistroExitoso';
+import ListadoEquipos from '../screens/ListadoEquipos';
+import RegistroEquipo from '../screens/RegistroEquipo';
+import ModificarEquipo from '../screens/ModificarEquipo';
 
 const Stack = createStackNavigator();
 
@@ -62,7 +65,26 @@ export default function Navigation() {
             {() => <RegistroExitoso onIniciarSesion={irAlLoginDespuesDeRegistro} />}
           </Stack.Screen>
         ) : user ? (
-          <Stack.Screen name="Home" component={Home} options={{ title: 'Inicio' }} />
+          <>
+            <Stack.Screen name="Home" component={Home} options={{ title: 'Inicio' }} />
+
+            {/* Pantallas de Equipos: cada una tiene su propia flecha para volver */}
+            <Stack.Screen
+              name="ListadoEquipos"
+              component={ListadoEquipos}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="RegistroEquipo"
+              component={RegistroEquipo}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="ModificarEquipo"
+              component={ModificarEquipo}
+              options={{ headerShown: false }}
+            />
+          </>
         ) : (
           <>
             <Stack.Screen name="Login" options={{ title: 'Iniciar sesión' }}>
