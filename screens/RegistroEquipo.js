@@ -13,6 +13,7 @@
     StyleSheet,            // estilos
     KeyboardAvoidingView,  // evita que el teclado tape los campos
     Platform,              // para saber si es iOS o Android
+    Image,                 // para mostrar la foto de arriba
     } from "react-native";
 
     // Íconos, los mismos que usan Login y SignUp
@@ -140,15 +141,20 @@
     );
     }
     // ---------------------------------------------------------------
-// PANTALLA: formulario para agregar un equipo
-// "navigation" lo pasa React Navigation y sirve para volver atrás
-// ---------------------------------------------------------------
-export default function RegistroEquipo({ navigation }) {
+    // PANTALLA: formulario para agregar un equipo
+    // "navigation" lo pasa React Navigation y sirve para volver atrás
+    // ---------------------------------------------------------------
+    export default function RegistroEquipo({ navigation }) {
     // Un estado por cada campo del formulario
     const [nombre, setNombre] = useState("");
     const [tipo, setTipo] = useState("");
     const [cantidad, setCantidad] = useState("");
     const [estado, setEstado] = useState("");
+
+    // Vuelve a la pantalla anterior (solo si hay una a la que volver)
+    const volver = () => {
+        if (navigation.canGoBack()) navigation.goBack();
+    };
 
     // Se ejecuta al tocar "Agregar".
     // Por ahora solo junta los datos y los muestra en la consola.
@@ -165,68 +171,77 @@ export default function RegistroEquipo({ navigation }) {
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-        {/* Flecha para volver: queda fija arriba a la izquierda */}
-        <TouchableOpacity
-            style={styles.flecha}
-            onPress={() => navigation.goBack()}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-            <Ionicons name="arrow-back" size={24} color={COLORS.azul} />
-        </TouchableOpacity>
-
         {/* Scroll por si la pantalla es chica; mantiene los toques con el teclado abierto */}
         <ScrollView
             contentContainerStyle={styles.contenido}
             keyboardShouldPersistTaps="handled"
         >
+            {/* Foto fija de arriba */}
+            <Image
+            source={require("../assets/equipo.jpeg")}
+            style={styles.imagen}
+            />
+
+            {/* Todo el formulario va dentro de esta caja con márgenes */}
+            <View style={styles.formulario}>
             {/* Título de la pantalla (igual que en Figma) */}
             <Text style={styles.titulo}>Agregar nuevo equipo</Text>
 
             {/* Nombre: texto libre */}
             <Campo
-            label="Nombre equipo"
-            placeholder="Ej: Consola 16 canales"
-            value={nombre}
-            onChangeText={setNombre}
+                label="Nombre equipo"
+                placeholder="Ej: Consola 16 canales"
+                value={nombre}
+                onChangeText={setNombre}
             />
 
             {/* Tipo: desplegable con la lista fija de tipos */}
             <Selector
-            label="Tipo de equipo"
-            valor={tipo}
-            opciones={LISTA_TIPOS_EQUIPO}
-            placeholder="Seleccioná un tipo"
-            onChange={setTipo}
+                label="Tipo de equipo"
+                valor={tipo}
+                opciones={LISTA_TIPOS_EQUIPO}
+                placeholder="Seleccioná un tipo"
+                onChange={setTipo}
             />
 
             {/* Cantidad: solo números */}
             <Campo
-            label="Cantidad"
-            placeholder="Ej: 4"
-            value={cantidad}
-            onChangeText={setCantidad}
-            keyboardType="numeric" // teclado numérico
+                label="Cantidad"
+                placeholder="Ej: 4"
+                value={cantidad}
+                onChangeText={setCantidad}
+                keyboardType="numeric" // teclado numérico
             />
 
             {/* Estado: desplegable con los estados */}
             <Selector
-            label="Estado"
-            valor={estado}
-            opciones={ESTADOS}
-            placeholder="Seleccioná un estado"
-            onChange={setEstado}
+                label="Estado"
+                valor={estado}
+                opciones={ESTADOS}
+                placeholder="Seleccioná un estado"
+                onChange={setEstado}
             />
 
             {/* Botón principal: Agregar */}
             <TouchableOpacity style={styles.boton} onPress={handleAgregar}>
-            <Text style={styles.botonTexto}>Agregar</Text>
+                <Text style={styles.botonTexto}>Agregar</Text>
             </TouchableOpacity>
 
             {/* Cancelar: vuelve atrás sin guardar */}
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.cancelar}>Cancelar</Text>
+            <TouchableOpacity onPress={volver}>
+                <Text style={styles.cancelar}>Cancelar</Text>
             </TouchableOpacity>
+            </View>
         </ScrollView>
+
+        {/* Flecha para volver: va DESPUÉS del scroll para quedar encima de la foto */}
+        <TouchableOpacity
+            style={styles.flecha}
+            onPress={volver}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+            <Ionicons name="arrow-back" size={22} color={COLORS.azul} />
+        </TouchableOpacity>
         </KeyboardAvoidingView>
     );
     }
@@ -238,24 +253,40 @@ export default function RegistroEquipo({ navigation }) {
     // Ocupa toda la pantalla con fondo blanco
     flex: { flex: 1, backgroundColor: COLORS.blanco },
 
-    // Flecha de volver fija arriba a la izquierda
-    flecha: { position: "absolute", top: 40, left: 20, zIndex: 1 },
-
-    // Márgenes internos y centrado vertical del formulario
-    contenido: {
-        flexGrow: 1,               // ocupa toda la altura de la pantalla
-        justifyContent: "center",  // centra el formulario verticalmente
-        paddingHorizontal: 20,
-        paddingTop: 72,            // deja lugar para la flecha de arriba
-        paddingBottom: 32,
+    // Flecha de volver: circulito blanco sobre la foto
+    flecha: {
+        position: "absolute",
+        top: 64,                          // para bajarla más, aumentá este número
+        left: 20,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: COLORS.blanco,
+        alignItems: "center",
+        justifyContent: "center",
+        elevation: 4,                     // sombra en Android (y para quedar encima)
+        shadowColor: "#000",              // sombra en iOS
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 2 },
+        zIndex: 10,
     },
+
+    // Espacio al final de la pantalla
+    contenido: { paddingBottom: 40 },
+
+    // Foto de arriba: ocupa todo el ancho (más alta para bajar el formulario)
+    imagen: { width: "100%", height: 280, resizeMode: "cover" },
+
+    // Caja del formulario con márgenes; paddingTop separa el título de la foto
+    formulario: { paddingHorizontal: 20, paddingTop: 36 },
 
     // Título grande en azul
     titulo: {
         fontSize: 22,
         fontWeight: "700",
         color: COLORS.azul,
-        marginBottom: 20,
+        marginBottom: 24,
     },
 
     // Espacio entre un campo y el siguiente
