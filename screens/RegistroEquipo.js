@@ -1,13 +1,12 @@
-    // useState sirve para guardar lo que el usuario escribe o elige
     import React, { useState } from "react";
 
-    // Componentes de React Native que usamos para armar la pantalla
+    // componentes de React Native que use para armar la pantalla
     import {
     View,                  // caja contenedora
     Text,                  // texto
     TextInput,             // campo donde se escribe
     TouchableOpacity,      // botón que se puede tocar
-    Modal,                 // ventana que aparece encima (lista de opciones)
+    Modal,                 // lista de opciones, osea la ventana que aparece encima 
     FlatList,              // lista de opciones
     ScrollView,            // pantalla con scroll
     StyleSheet,            // estilos
@@ -16,16 +15,16 @@
     Image,                 // para mostrar la foto de arriba
     } from "react-native";
 
-    // Íconos, los mismos que usan Login y SignUp
+    // iconos
     import { Ionicons } from "@expo/vector-icons";
 
-    // Mismo componente de error que usan Login y SignUp
+    // mismo componente de error que usan login y registro
     import MensajeError from "../components/MensajeError";
 
-    // Lista fija de tipos (Sonido, Iluminación, Infraestructura)
+    // lista fija de tipos (Sonido, Iluminación, Infraestructura)
     import { LISTA_TIPOS_EQUIPO } from "../src/utils/tiposEquipos";
 
-    // Colores tomados de SignUp/Login para que todas las pantallas se vean igual
+    // colores 
     const COLORS = {
     azul: "#0b2f5b",
     verde: "#4e7246",
@@ -36,29 +35,26 @@
     blanco: "#FFFFFF",
     };
 
-    // Estados que aparecen en Figma para un equipo
+    // estados de los equipos
     const ESTADOS = ["Disponible", "En uso", "En reparación"];
 
-    // ---------------------------------------------------------------
-    // CAMPO: texto con título arriba, borde y mensaje de error abajo.
-    // Si le llega "error", el borde se pone rojo y se muestra el mensaje.
-    // ---------------------------------------------------------------
+    // CAMPOS
     function Campo({ label, error, ...inputProps }) {
     return (
         <View style={styles.grupo}>
         {/* Título del campo */}
         <Text style={styles.label}>{label}</Text>
 
-        {/* Caja del campo: borde rojo si hay error */}
+        //caja de los campos, si hay error se pone roja
         <View style={[styles.inputWrap, error && styles.inputWrapError]}>
             <TextInput
             style={styles.input}
             placeholderTextColor={COLORS.placeholder}
-            {...inputProps} // value, onChangeText, placeholder, keyboardType, etc.
+            {...inputProps} 
             />
         </View>
 
-        {/* Mensaje de error (mismo componente que en SignUp) */}
+        //mensaje de error
         {error ? (
             <View style={styles.errorWrap}>
             <MensajeError mensaje={error} />
@@ -68,28 +64,24 @@
     );
     }
 
-    // ---------------------------------------------------------------
-    // SELECTOR: desplegable para Tipo y Estado.
-    // Muestra el valor elegido y, al tocarlo, abre una lista de opciones.
-    // ---------------------------------------------------------------
+    // SELECTOR
+
     function Selector({ label, valor, opciones, placeholder, onChange, error }) {
-    // Guarda si la lista de opciones está abierta o cerrada
+    // guarda si la lista de opciones está abierta o cerrada
     const [abierto, setAbierto] = useState(false);
 
     return (
         <View style={styles.grupo}>
         <Text style={styles.label}>{label}</Text>
 
-        {/* Caja que se ve en la pantalla; al tocarla se abre la lista */}
         <TouchableOpacity
             style={[styles.inputWrap, error && styles.inputWrapError]}
             onPress={() => setAbierto(true)}
         >
-            {/* Si ya eligió algo lo muestra, si no muestra el texto de ayuda */}
             <Text style={valor ? styles.valor : styles.textoPlaceholder}>
             {valor || placeholder}
             </Text>
-            {/* Flechita del desplegable */}
+        //flechita desplegable
             <Ionicons
             name="chevron-down"
             size={20}
@@ -97,27 +89,27 @@
             />
         </TouchableOpacity>
 
-        {/* Mensaje de error si lo hay */}
+        //mensaje de error
         {error ? (
             <View style={styles.errorWrap}>
             <MensajeError mensaje={error} />
             </View>
         ) : null}
 
-        {/* Lista de opciones: ventana encima de la pantalla */}
+        //lista de opciones
         <Modal
             transparent                              // deja ver el fondo
             animationType="fade"                     // aparece de a poco
             visible={abierto}                        // se muestra solo si "abierto" es true
-            onRequestClose={() => setAbierto(false)} // botón atrás de Android la cierra
+            onRequestClose={() => setAbierto(false)} // boton atras de android la cierra
         >
-            {/* Fondo oscuro: si se toca afuera, se cierra */}
+            //fondo oscuro
             <TouchableOpacity
             style={styles.fondoModal}
             activeOpacity={1}
             onPress={() => setAbierto(false)}
             >
-            {/* Cuadro blanco con las opciones */}
+          //opciones en un cuadro blanco
             <View style={styles.listaModal}>
                 <FlatList
                 data={opciones}                   // opciones a mostrar
@@ -140,10 +132,9 @@
         </View>
     );
     }
-    // ---------------------------------------------------------------
-    // PANTALLA: formulario para agregar un equipo
-    // "navigation" lo pasa React Navigation y sirve para volver atrás
-    // ---------------------------------------------------------------
+
+    // Formulario para registrar un equipo
+
     export default function RegistroEquipo({ navigation }) {
     // Un estado por cada campo del formulario
     const [nombre, setNombre] = useState("");
@@ -151,43 +142,41 @@
     const [cantidad, setCantidad] = useState("");
     const [estado, setEstado] = useState("");
 
-    // Vuelve a la pantalla anterior (solo si hay una a la que volver)
+    // Vuelve a la pantalla anterior 
     const volver = () => {
         if (navigation.canGoBack()) navigation.goBack();
     };
 
     // Se ejecuta al tocar "Agregar".
     // Por ahora solo junta los datos y los muestra en la consola.
-    // La validación (S5-05 y S5-06) y el guardado en Firestore (S5-07)
-    // los conectan después los compañeros.
     const handleAgregar = () => {
         const datos = { nombre, tipo, cantidad, estado };
         console.log("Datos del equipo:", datos);
     };
 
     return (
-        // Evita que el teclado tape los campos en iOS
+        // para que el teclado tape los campos en ios
         <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-        {/* Scroll por si la pantalla es chica; mantiene los toques con el teclado abierto */}
+        //scroll por si la pantalla es chica
         <ScrollView
             contentContainerStyle={styles.contenido}
             keyboardShouldPersistTaps="handled"
         >
-            {/* Foto fija de arriba */}
+        //imagen de arriba
             <Image
             source={require("../assets/equipo.jpeg")}
             style={styles.imagen}
             />
 
-            {/* Todo el formulario va dentro de esta caja con márgenes */}
+        //formulario
             <View style={styles.formulario}>
-            {/* Título de la pantalla (igual que en Figma) */}
+
             <Text style={styles.titulo}>Agregar nuevo equipo</Text>
 
-            {/* Nombre: texto libre */}
+            //nombre del equipo
             <Campo
                 label="Nombre equipo"
                 placeholder="Ej: Consola 16 canales"
@@ -195,7 +184,7 @@
                 onChangeText={setNombre}
             />
 
-            {/* Tipo: desplegable con la lista fija de tipos */}
+        //desplegable con la lista de tipos 
             <Selector
                 label="Tipo de equipo"
                 valor={tipo}
@@ -204,7 +193,7 @@
                 onChange={setTipo}
             />
 
-            {/* Cantidad: solo números */}
+         // en cantidad para que solo aparezcan números 
             <Campo
                 label="Cantidad"
                 placeholder="Ej: 4"
@@ -213,7 +202,7 @@
                 keyboardType="numeric" // teclado numérico
             />
 
-            {/* Estado: desplegable con los estados */}
+        // Estado: desplegable con los estados 
             <Selector
                 label="Estado"
                 valor={estado}
@@ -222,19 +211,19 @@
                 onChange={setEstado}
             />
 
-            {/* Botón principal: Agregar */}
+        //Botón principal para agregar 
             <TouchableOpacity style={styles.boton} onPress={handleAgregar}>
                 <Text style={styles.botonTexto}>Agregar</Text>
             </TouchableOpacity>
 
-            {/* Cancelar: vuelve atrás sin guardar */}
+         // Cancelar
             <TouchableOpacity onPress={volver}>
                 <Text style={styles.cancelar}>Cancelar</Text>
             </TouchableOpacity>
             </View>
         </ScrollView>
 
-        {/* Flecha para volver: va DESPUÉS del scroll para quedar encima de la foto */}
+        // Flecha para volver hacia atras, encima de la imagen 
         <TouchableOpacity
             style={styles.flecha}
             onPress={volver}
@@ -246,17 +235,17 @@
     );
     }
 
-    // ---------------------------------------------------------------
-    // ESTILOS (copiados del estilo de SignUp)
-    // ---------------------------------------------------------------
+
+// ESTILOS 
+
     const styles = StyleSheet.create({
     // Ocupa toda la pantalla con fondo blanco
     flex: { flex: 1, backgroundColor: COLORS.blanco },
 
-    // Flecha de volver: circulito blanco sobre la foto
+    // Flecha para volver hacia atras 
     flecha: {
         position: "absolute",
-        top: 64,                          // para bajarla más, aumentá este número
+        top: 64,                          
         left: 20,
         width: 40,
         height: 40,
@@ -264,7 +253,7 @@
         backgroundColor: COLORS.blanco,
         alignItems: "center",
         justifyContent: "center",
-        elevation: 4,                     // sombra en Android (y para quedar encima)
+        elevation: 4,                     // sombra en android 
         shadowColor: "#000",              // sombra en iOS
         shadowOpacity: 0.2,
         shadowRadius: 4,
@@ -272,16 +261,16 @@
         zIndex: 10,
     },
 
-    // Espacio al final de la pantalla
+    // espacio al final de la pantalla
     contenido: { paddingBottom: 40 },
 
-    // Foto de arriba: ocupa todo el ancho (más alta para bajar el formulario)
+    // imagen 
     imagen: { width: "100%", height: 280, resizeMode: "cover" },
 
-    // Caja del formulario con márgenes; paddingTop separa el título de la foto
+    // separacion del título de la foto
     formulario: { paddingHorizontal: 20, paddingTop: 36 },
 
-    // Título grande en azul
+    // titulo grande en azul
     titulo: {
         fontSize: 22,
         fontWeight: "700",
@@ -289,13 +278,13 @@
         marginBottom: 24,
     },
 
-    // Espacio entre un campo y el siguiente
+    // espacio entre un campo y el siguiente
     grupo: { marginBottom: 14 },
 
-    // Título chico arriba de cada campo
+    // titulo pequeño arriba de cada campo
     label: { fontSize: 14, color: COLORS.azul, marginBottom: 6 },
 
-    // Caja de cada campo: borde gris redondeado
+    // caja de cada campo osea el borde gris redondeado
     inputWrap: {
         flexDirection: "row",            // contenido a la izquierda, flecha a la derecha
         alignItems: "center",
@@ -307,22 +296,22 @@
         height: 48,
     },
 
-    // Borde rojo cuando hay un error
+    // borde rojo cuando hay un error
     inputWrapError: { borderColor: COLORS.error },
 
-    // Texto que se escribe dentro del campo
+    // texto que se escribe dentro del campo
     input: { flex: 1, fontSize: 15, color: "#111827" },
 
-    // Texto del valor elegido en un selector
+    // texto del valor elegido en un selector
     valor: { fontSize: 15, color: "#111827" },
 
-    // Texto de ayuda en gris cuando todavía no se eligió nada
+    // placeholder cuando todavía no se eligió nada
     textoPlaceholder: { fontSize: 15, color: COLORS.placeholder },
 
-    // Espacio para el mensaje de error (igual que en SignUp)
+    // fspacio para el mensaje de error 
     errorWrap: { marginTop: 20 },
 
-    // Fondo oscuro semitransparente detrás de la lista de opciones
+    // fondo oscuro medio transparente detras de la lista de opciones
     fondoModal: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.4)",
@@ -336,7 +325,7 @@
     // Cada opción de la lista
     opcion: { paddingVertical: 14, paddingHorizontal: 12 },
 
-    // Botón "Agregar": verde, centrado y menos ancho (70% de la pantalla)
+    // Boton Agregar
     boton: {
         backgroundColor: COLORS.verde,
         borderRadius: 8,
@@ -348,10 +337,10 @@
         marginTop: 8,
     },
 
-    // Texto del botón
+    // texto del botoon
     botonTexto: { color: COLORS.blanco, fontSize: 16, fontWeight: "700" },
 
-    // Texto "Cancelar"
+    // texto Cancelar
     cancelar: {
         textAlign: "center",
         color: COLORS.azul,
