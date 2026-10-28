@@ -22,6 +22,16 @@
     // Mismo componente de error que usan Login y SignUp
     import MensajeError from "../components/MensajeError";
 
+    
+    // react-hook-form: maneja los valores del formulario y sus errores
+    // (Controller conecta cada campo con el formulario)
+    import { useForm, Controller } from "react-hook-form";
+
+    // Conecta react-hook-form con zod para que valide con nuestro esquema
+    import { zodResolver } from "@hookform/resolvers/zod";
+
+    // Esquema de validación del equipo (S4-07): nombre, tipo, cantidad y estado
+    import { equipoFormSchema } from "../src/validations/equipoFormSchema";
     // Lista fija de tipos (Sonido, Iluminación, Infraestructura)
     import { LISTA_TIPOS_EQUIPO } from "../src/utils/tiposEquipos";
 
@@ -145,23 +155,27 @@
     // "navigation" lo pasa React Navigation y sirve para volver atrás
     // ---------------------------------------------------------------
     export default function RegistroEquipo({ navigation }) {
-    // Un estado por cada campo del formulario
-    const [nombre, setNombre] = useState("");
-    const [tipo, setTipo] = useState("");
-    const [cantidad, setCantidad] = useState("");
-    const [estado, setEstado] = useState("");
+    // useForm guarda lo que el usuario escribe o elige en los 4 campos.
+    // resolver: usa el esquema de zod para validar al tocar "Agregar".
+    // defaultValues: cómo arranca cada campo (vacío).
+    const {
+        control,                  // conecta cada campo con el formulario
+        handleSubmit,             // valida y recién ahí ejecuta onSubmit
+        formState: { errors },    // errores de cada campo (si los hay)
+    } = useForm({
+        resolver: zodResolver(equipoFormSchema),
+        defaultValues: { nombre: "", tipo: "", cantidad: "", estado: "" },
+    });
 
     // Vuelve a la pantalla anterior (solo si hay una a la que volver)
     const volver = () => {
         if (navigation.canGoBack()) navigation.goBack();
     };
 
-    // Se ejecuta al tocar "Agregar".
-    // Por ahora solo junta los datos y los muestra en la consola.
-    // La validación (S5-05 y S5-06) y el guardado en Firestore (S5-07)
-    // los conectan después los compañeros.
-    const handleAgregar = () => {
-        const datos = { nombre, tipo, cantidad, estado };
+    // Se ejecuta al tocar "Agregar", pero SOLO si todos los campos son válidos.
+    // "datos" ya viene limpio (la cantidad llega como número).
+    // El guardado en Firestore (S5-07) lo conecta Aldana acá adentro.
+    const onSubmit = (datos) => {
         console.log("Datos del equipo:", datos);
     };
 
@@ -187,43 +201,73 @@
             {/* Título de la pantalla (igual que en Figma) */}
             <Text style={styles.titulo}>Agregar nuevo equipo</Text>
 
-            {/* Nombre: texto libre */}
-            <Campo
-                label="Nombre equipo"
-                placeholder="Ej: Consola 16 canales"
-                value={nombre}
-                onChangeText={setNombre}
+                       {/* Nombre: texto libre, obligatorio */}
+            <Controller
+                control={control}
+                name="nombre"
+                render={({ field: { value, onChange, onBlur } }) => (
+                <Campo
+                    label="Nombre equipo"
+                    placeholder="Ej: Consola 16 canales"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    error={errors.nombre?.message} // borde rojo + mensaje si hay error
+                />
+                )}
             />
 
             {/* Tipo: desplegable con la lista fija de tipos */}
-            <Selector
-                label="Tipo de equipo"
-                valor={tipo}
-                opciones={LISTA_TIPOS_EQUIPO}
-                placeholder="Seleccioná un tipo"
-                onChange={setTipo}
+            <Controller
+                control={control}
+                name="tipo"
+                render={({ field: { value, onChange } }) => (
+                <Selector
+                    label="Tipo de equipo"
+                    valor={value}
+                    opciones={LISTA_TIPOS_EQUIPO}
+                    placeholder="Seleccioná un tipo"
+                    onChange={onChange}
+                    error={errors.tipo?.message}
+                />
+                )}
             />
 
-            {/* Cantidad: solo números */}
-            <Campo
-                label="Cantidad"
-                placeholder="Ej: 4"
-                value={cantidad}
-                onChangeText={setCantidad}
-                keyboardType="numeric" // teclado numérico
+            {/* Cantidad: solo números enteros, 0 o más */}
+            <Controller
+                control={control}
+                name="cantidad"
+                render={({ field: { value, onChange, onBlur } }) => (
+                <Campo
+                    label="Cantidad"
+                    placeholder="Ej: 4"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    keyboardType="numeric" // teclado numérico
+                    error={errors.cantidad?.message}
+                />
+                )}
             />
 
             {/* Estado: desplegable con los estados */}
-            <Selector
-                label="Estado"
-                valor={estado}
-                opciones={ESTADOS}
-                placeholder="Seleccioná un estado"
-                onChange={setEstado}
+            <Controller
+                control={control}
+                name="estado"
+                render={({ field: { value, onChange } }) => (
+                <Selector
+                    label="Estado"
+                    valor={value}
+                    opciones={ESTADOS}
+                    placeholder="Seleccioná un estado"
+                    onChange={onChange}
+                    error={errors.estado?.message}
+                />
+                )}
             />
 
             {/* Botón principal: Agregar */}
-            <TouchableOpacity style={styles.boton} onPress={handleAgregar}>
+            <TouchableOpacity style={styles.boton} onPress={handleSubmit(onSubmit)}>
                 <Text style={styles.botonTexto}>Agregar</Text>
             </TouchableOpacity>
 
@@ -359,3 +403,4 @@
         marginTop: 16,
     },
     });
+    
