@@ -161,6 +161,7 @@
     const {
         control,                  // conecta cada campo con el formulario
         handleSubmit,             // valida y recién ahí ejecuta onSubmit
+        getValues,       // lee el valor actual de un campo
         formState: { errors },    // errores de cada campo (si los hay)
     } = useForm({
         resolver: zodResolver(equipoFormSchema),
@@ -170,6 +171,16 @@
     // Vuelve a la pantalla anterior (solo si hay una a la que volver)
     const volver = () => {
         if (navigation.canGoBack()) navigation.goBack();
+    };
+    
+    // Devuelve el mensaje de error de un campo, o undefined si no tiene error.
+    // S5-05: si el campo está vacío muestra "Este campo es obligatorio";
+    // si tiene algo mal (ej. cantidad negativa) muestra el mensaje del esquema.
+    const mensajeError = (campo) => {
+        const error = errors[campo];
+        if (!error) return undefined;
+        const vacio = String(getValues(campo) ?? "").trim() === "";
+        return vacio ? "Este campo es obligatorio" : error.message;
     };
 
     // Se ejecuta al tocar "Agregar", pero SOLO si todos los campos son válidos.
@@ -212,7 +223,7 @@
                     value={value}
                     onChangeText={onChange}
                     onBlur={onBlur}
-                    error={errors.nombre?.message} // borde rojo + mensaje si hay error
+                    error={mensajeError("nombre")}// borde rojo + mensaje si hay error
                 />
                 )}
             />
@@ -228,7 +239,7 @@
                     opciones={LISTA_TIPOS_EQUIPO}
                     placeholder="Seleccioná un tipo"
                     onChange={onChange}
-                    error={errors.tipo?.message}
+                    error={mensajeError("tipo")}
                 />
                 )}
             />
@@ -245,7 +256,7 @@
                     onChangeText={onChange}
                     onBlur={onBlur}
                     keyboardType="numeric" // teclado numérico
-                    error={errors.cantidad?.message}
+                    error={mensajeError("cantidad")}
                 />
                 )}
             />
@@ -261,7 +272,7 @@
                     opciones={ESTADOS}
                     placeholder="Seleccioná un estado"
                     onChange={onChange}
-                    error={errors.estado?.message}
+                    error={mensajeError("estado")}
                 />
                 )}
             />
