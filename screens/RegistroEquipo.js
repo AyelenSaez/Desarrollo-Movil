@@ -1,4 +1,4 @@
-    import React, { useState } from "react";
+import React, { useState } from "react";
 
     // componentes de React Native que use para armar la pantalla
     import {
@@ -33,6 +33,25 @@
     import { equipoFormSchema } from "../src/validations/equipoFormSchema";
     // Lista fija de tipos (Sonido, Iluminación, Infraestructura)
     import { LISTA_TIPOS_EQUIPO } from "../src/utils/tiposEquipos";
+    // avisos en pantalla (exito o error)
+    import { useNotificacion } from "../components/Notificacion";
+    // funciones de firestore para equipos, tipos y estados
+    import {
+    registrarEquipo,
+    cargarTiposIniciales,
+    crearTipoEquipo,
+    obtenerEstadosEquipo,
+    crearEstadoEquipo,
+    } from "../src/services/equipoService";
+
+    // busca en una lista el id del elemento que tiene ese nombre (sin importar mayusculas ni espacios)
+    const buscarIdPorNombre = (lista, campoId, campoNombre, nombre) => {
+    const buscado = String(nombre ?? "").trim().toLowerCase();
+    const encontrado = lista.find(
+        (item) => String(item[campoNombre] ?? "").trim().toLowerCase() === buscado
+    );
+    return encontrado ? encontrado[campoId] : undefined;
+    };
 
     // Colores tomados de SignUp/Login para que todas las pantallas se vean igual
     export const COLORS = {
@@ -58,7 +77,7 @@
         {/* Título del campo */}
         <Text style={styles.label}>{label}</Text>
 
-        //caja de los campos, si hay error se pone roja
+        {/* caja de los campos, si hay error se pone roja */}
         <View style={[styles.inputWrap, error && styles.inputWrapError]}>
             <TextInput
             style={styles.input}
@@ -67,7 +86,7 @@
             />
         </View>
 
-        //mensaje de error
+        {/* mensaje de error */}
         {error ? (
             <View style={styles.errorWrap}>
             <MensajeError mensaje={error} />
@@ -96,7 +115,7 @@
             <Text style={valor ? styles.valor : styles.textoPlaceholder}>
             {valor || placeholder}
             </Text>
-        //flechita desplegable
+        {/* flechita desplegable */}
             <Ionicons
             name="chevron-down"
             size={20}
@@ -104,27 +123,27 @@
             />
         </TouchableOpacity>
 
-        //mensaje de error
+        {/* mensaje de error */}
         {error ? (
             <View style={styles.errorWrap}>
             <MensajeError mensaje={error} />
             </View>
         ) : null}
 
-        //lista de opciones
+        {/* lista de opciones */}
         <Modal
             transparent                              // deja ver el fondo
             animationType="fade"                     // aparece de a poco
             visible={abierto}                        // se muestra solo si "abierto" es true
             onRequestClose={() => setAbierto(false)} // boton atras de android la cierra
         >
-            //fondo oscuro
+            {/* fondo oscuro */}
             <TouchableOpacity
             style={styles.fondoModal}
             activeOpacity={1}
             onPress={() => setAbierto(false)}
             >
-          //opciones en un cuadro blanco
+          {/* opciones en un cuadro blanco */}
             <View style={styles.listaModal}>
                 <FlatList
                 data={opciones}                   // opciones a mostrar
@@ -164,6 +183,10 @@
         defaultValues: { nombre: "", tipo: "", cantidad: "", estado: "" },
     });
 
+    const { mostrarNotificacion } = useNotificacion();
+    // true mientras se guarda, para no guardar dos veces si tocan el boton de nuevo
+    const [guardando, setGuardando] = useState(false);
+
     // Vuelve a la pantalla anterior 
     const volver = () => {
         if (navigation.canGoBack()) navigation.goBack();
@@ -181,9 +204,49 @@
 
     // Se ejecuta al tocar "Agregar", pero SOLO si todos los campos son válidos.
     // "datos" ya viene limpio (la cantidad llega como número).
-    // El guardado en Firestore (S5-07) lo conecta Aldana acá adentro.
-    const onSubmit = (datos) => {
-        console.log("Datos del equipo:", datos);
+    // guardado en firestore (S5-07): el formulario tiene el nombre del tipo y del estado,
+    // pero en la base se guardan sus id, asi que primero se buscan (o se crean si no existen)
+    const onSubmit = async (datos) => {
+        if (guardando) return;
+        setGuardando(true);
+        try {
+        // tipos: si la coleccion esta vacia carga sonido, iluminacion e infraestructura
+        const tipos = await cargarTiposIniciales();
+        if (!tipos.ok) return mostrarNotificacion(tipos.mensaje, "error");
+        let id_tipoeq = buscarIdPorNombre(tipos.datos, "id_tipoeq", "nombre_tipoeq", datos.tipo);
+        if (!id_tipoeq) {
+            const nuevoTipo = await crearTipoEquipo({ nombre_tipoeq: datos.tipo });
+            if (!nuevoTipo.ok) return mostrarNotificacion(nuevoTipo.mensaje, "error");
+            id_tipoeq = nuevoTipo.dato.id_tipoeq;
+        }
+
+        // estados: si el estado elegido todavia no existe en la base, se crea
+        const estados = await obtenerEstadosEquipo();
+        if (!estados.ok) return mostrarNotificacion(estados.mensaje, "error");
+        let id_estadoeq = buscarIdPorNombre(estados.datos, "id_estadoeq", "nombre_estadoeq", datos.estado);
+        if (!id_estadoeq) {
+            const nuevoEstado = await crearEstadoEquipo({ nombre_estadoeq: datos.estado });
+            if (!nuevoEstado.ok) return mostrarNotificacion(nuevoEstado.mensaje, "error");
+            id_estadoeq = nuevoEstado.dato.id_estadoeq;
+        }
+
+        // guarda el equipo (registrarEquipo tambien revisa que no este duplicado)
+        const resultado = await registrarEquipo({
+            id_tipoeq,
+            id_estadoeq,
+            nombre_equipo: datos.nombre.trim(),
+            cantidad_equipo: Number(datos.cantidad),
+        });
+
+        if (resultado.ok) {
+            mostrarNotificacion(resultado.mensaje, "exito");
+            volver(); // vuelve al listado, que se recarga solo
+        } else {
+            mostrarNotificacion(resultado.mensaje, "error");
+        }
+        } finally {
+        setGuardando(false);
+        }
     };
 
     return (
@@ -192,18 +255,18 @@
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-        //scroll por si la pantalla es chica
+        {/* scroll por si la pantalla es chica */}
         <ScrollView
             contentContainerStyle={styles.contenido}
             keyboardShouldPersistTaps="handled"
         >
-        //imagen de arriba
+        {/* imagen de arriba */}
             <Image
             source={require("../assets/equipo.jpeg")}
             style={styles.imagen}
             />
 
-        //formulario
+        {/* formulario */}
             <View style={styles.formulario}>
 
             <Text style={styles.titulo}>Agregar nuevo equipo</Text>
@@ -274,18 +337,22 @@
             />
 
             {/* Botón principal: Agregar */}
-            <TouchableOpacity style={styles.boton} onPress={handleSubmit(onSubmit)}>
-                <Text style={styles.botonTexto}>Agregar</Text>
+            <TouchableOpacity
+                style={[styles.boton, guardando && { opacity: 0.6 }]}
+                onPress={handleSubmit(onSubmit)}
+                disabled={guardando}
+            >
+                <Text style={styles.botonTexto}>{guardando ? "Guardando..." : "Agregar"}</Text>
             </TouchableOpacity>
 
-         // Cancelar
+         {/* Cancelar */}
             <TouchableOpacity onPress={volver}>
                 <Text style={styles.cancelar}>Cancelar</Text>
             </TouchableOpacity>
             </View>
         </ScrollView>
 
-        // Flecha para volver hacia atras, encima de la imagen 
+        {/* Flecha para volver hacia atras, encima de la imagen */}
         <TouchableOpacity
             style={styles.flecha}
             onPress={volver}
@@ -410,4 +477,3 @@
         marginTop: 16,
     },
     });
-    

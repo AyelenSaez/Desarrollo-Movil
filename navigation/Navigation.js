@@ -66,7 +66,7 @@ export default function Navigation() {
           </Stack.Screen>
         ) : user ? (
           <>
-            <Stack.Screen name="Home" component={Home} options={{ title: 'Inicio' }} />
+            <Stack.Screen name="Home" component={Home} options={{ title: 'Inicio', headerShown: false }} /> 
 
             {/* Pantallas de Equipos: cada una tiene su propia flecha para volver */}
             <Stack.Screen
