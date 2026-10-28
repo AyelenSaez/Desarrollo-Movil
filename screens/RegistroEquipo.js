@@ -21,11 +21,21 @@
     // mismo componente de error que usan login y registro
     import MensajeError from "../components/MensajeError";
 
-    // lista fija de tipos (Sonido, Iluminación, Infraestructura)
+    
+    // react-hook-form: maneja los valores del formulario y sus errores
+    // (Controller conecta cada campo con el formulario)
+    import { useForm, Controller } from "react-hook-form";
+
+    // Conecta react-hook-form con zod para que valide con nuestro esquema
+    import { zodResolver } from "@hookform/resolvers/zod";
+
+    // Esquema de validación del equipo (S4-07): nombre, tipo, cantidad y estado
+    import { equipoFormSchema } from "../src/validations/equipoFormSchema";
+    // Lista fija de tipos (Sonido, Iluminación, Infraestructura)
     import { LISTA_TIPOS_EQUIPO } from "../src/utils/tiposEquipos";
 
-    // colores 
-    const COLORS = {
+    // Colores tomados de SignUp/Login para que todas las pantallas se vean igual
+    export const COLORS = {
     azul: "#0b2f5b",
     verde: "#4e7246",
     borde: "#C9CED6",
@@ -35,11 +45,14 @@
     blanco: "#FFFFFF",
     };
 
-    // estados de los equipos
-    const ESTADOS = ["Disponible", "En uso", "En reparación"];
+    // Estados que aparecen en Figma para un equipo
+    export const ESTADOS = ["Disponible", "En uso", "En reparación"];
 
-    // CAMPOS
-    function Campo({ label, error, ...inputProps }) {
+    // ---------------------------------------------------------------
+    // CAMPO: texto con título arriba, borde y mensaje de error abajo.
+    // Si le llega "error", el borde se pone rojo y se muestra el mensaje.
+    // ---------------------------------------------------------------
+    export function Campo({ label, error, ...inputProps }) {
     return (
         <View style={styles.grupo}>
         {/* Título del campo */}
@@ -64,10 +77,12 @@
     );
     }
 
-    // SELECTOR
-
-    function Selector({ label, valor, opciones, placeholder, onChange, error }) {
-    // guarda si la lista de opciones está abierta o cerrada
+    // ---------------------------------------------------------------
+    // SELECTOR: desplegable para Tipo y Estado.
+    // Muestra el valor elegido y, al tocarlo, abre una lista de opciones.
+    // ---------------------------------------------------------------
+    export function Selector({ label, valor, opciones, placeholder, onChange, error }) {
+    // Guarda si la lista de opciones está abierta o cerrada
     const [abierto, setAbierto] = useState(false);
 
     return (
@@ -136,21 +151,38 @@
     // Formulario para registrar un equipo
 
     export default function RegistroEquipo({ navigation }) {
-    // Un estado por cada campo del formulario
-    const [nombre, setNombre] = useState("");
-    const [tipo, setTipo] = useState("");
-    const [cantidad, setCantidad] = useState("");
-    const [estado, setEstado] = useState("");
+    // useForm guarda lo que el usuario escribe o elige en los 4 campos.
+    // resolver: usa el esquema de zod para validar al tocar "Agregar".
+    // defaultValues: cómo arranca cada campo (vacío).
+    const {
+        control,                  // conecta cada campo con el formulario
+        handleSubmit,             // valida y recién ahí ejecuta onSubmit
+        getValues,       // lee el valor actual de un campo
+        formState: { errors },    // errores de cada campo (si los hay)
+    } = useForm({
+        resolver: zodResolver(equipoFormSchema),
+        defaultValues: { nombre: "", tipo: "", cantidad: "", estado: "" },
+    });
 
     // Vuelve a la pantalla anterior 
     const volver = () => {
         if (navigation.canGoBack()) navigation.goBack();
     };
+    
+    // Devuelve el mensaje de error de un campo, o undefined si no tiene error.
+    // S5-05: si el campo está vacío muestra "Este campo es obligatorio";
+    // si tiene algo mal (ej. cantidad negativa) muestra el mensaje del esquema.
+    const mensajeError = (campo) => {
+        const error = errors[campo];
+        if (!error) return undefined;
+        const vacio = String(getValues(campo) ?? "").trim() === "";
+        return vacio ? "Este campo es obligatorio" : error.message;
+    };
 
-    // Se ejecuta al tocar "Agregar".
-    // Por ahora solo junta los datos y los muestra en la consola.
-    const handleAgregar = () => {
-        const datos = { nombre, tipo, cantidad, estado };
+    // Se ejecuta al tocar "Agregar", pero SOLO si todos los campos son válidos.
+    // "datos" ya viene limpio (la cantidad llega como número).
+    // El guardado en Firestore (S5-07) lo conecta Aldana acá adentro.
+    const onSubmit = (datos) => {
         console.log("Datos del equipo:", datos);
     };
 
@@ -176,43 +208,73 @@
 
             <Text style={styles.titulo}>Agregar nuevo equipo</Text>
 
-            //nombre del equipo
-            <Campo
-                label="Nombre equipo"
-                placeholder="Ej: Consola 16 canales"
-                value={nombre}
-                onChangeText={setNombre}
+                       {/* Nombre: texto libre, obligatorio */}
+            <Controller
+                control={control}
+                name="nombre"
+                render={({ field: { value, onChange, onBlur } }) => (
+                <Campo
+                    label="Nombre equipo"
+                    placeholder="Ej: Consola 16 canales"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    error={mensajeError("nombre")}// borde rojo + mensaje si hay error
+                />
+                )}
             />
 
-        //desplegable con la lista de tipos 
-            <Selector
-                label="Tipo de equipo"
-                valor={tipo}
-                opciones={LISTA_TIPOS_EQUIPO}
-                placeholder="Seleccioná un tipo"
-                onChange={setTipo}
+            {/* Tipo: desplegable con la lista fija de tipos */}
+            <Controller
+                control={control}
+                name="tipo"
+                render={({ field: { value, onChange } }) => (
+                <Selector
+                    label="Tipo de equipo"
+                    valor={value}
+                    opciones={LISTA_TIPOS_EQUIPO}
+                    placeholder="Seleccioná un tipo"
+                    onChange={onChange}
+                    error={mensajeError("tipo")}
+                />
+                )}
             />
 
-         // en cantidad para que solo aparezcan números 
-            <Campo
-                label="Cantidad"
-                placeholder="Ej: 4"
-                value={cantidad}
-                onChangeText={setCantidad}
-                keyboardType="numeric" // teclado numérico
+            {/* Cantidad: solo números enteros, 0 o más */}
+            <Controller
+                control={control}
+                name="cantidad"
+                render={({ field: { value, onChange, onBlur } }) => (
+                <Campo
+                    label="Cantidad"
+                    placeholder="Ej: 4"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    keyboardType="numeric" // teclado numérico
+                    error={mensajeError("cantidad")}
+                />
+                )}
             />
 
-        // Estado: desplegable con los estados 
-            <Selector
-                label="Estado"
-                valor={estado}
-                opciones={ESTADOS}
-                placeholder="Seleccioná un estado"
-                onChange={setEstado}
+            {/* Estado: desplegable con los estados */}
+            <Controller
+                control={control}
+                name="estado"
+                render={({ field: { value, onChange } }) => (
+                <Selector
+                    label="Estado"
+                    valor={value}
+                    opciones={ESTADOS}
+                    placeholder="Seleccioná un estado"
+                    onChange={onChange}
+                    error={mensajeError("estado")}
+                />
+                )}
             />
 
-        //Botón principal para agregar 
-            <TouchableOpacity style={styles.boton} onPress={handleAgregar}>
+            {/* Botón principal: Agregar */}
+            <TouchableOpacity style={styles.boton} onPress={handleSubmit(onSubmit)}>
                 <Text style={styles.botonTexto}>Agregar</Text>
             </TouchableOpacity>
 
@@ -235,10 +297,10 @@
     );
     }
 
-
-// ESTILOS 
-
-    const styles = StyleSheet.create({
+    // ---------------------------------------------------------------
+    // ESTILOS (copiados del estilo de SignUp)
+    // ---------------------------------------------------------------
+    export const styles = StyleSheet.create({
     // Ocupa toda la pantalla con fondo blanco
     flex: { flex: 1, backgroundColor: COLORS.blanco },
 
@@ -348,3 +410,4 @@
         marginTop: 16,
     },
     });
+    
