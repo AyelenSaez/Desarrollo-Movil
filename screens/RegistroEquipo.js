@@ -36,7 +36,7 @@
     import { LISTA_TIPOS_EQUIPO } from "../src/utils/tiposEquipos";
 
     // Colores tomados de SignUp/Login para que todas las pantallas se vean igual
-    const COLORS = {
+    export const COLORS = {
     azul: "#0b2f5b",
     verde: "#4e7246",
     borde: "#C9CED6",
@@ -47,13 +47,13 @@
     };
 
     // Estados que aparecen en Figma para un equipo
-    const ESTADOS = ["Disponible", "En uso", "En reparación"];
+    export const ESTADOS = ["Disponible", "En uso", "En reparación"];
 
     // ---------------------------------------------------------------
     // CAMPO: texto con título arriba, borde y mensaje de error abajo.
     // Si le llega "error", el borde se pone rojo y se muestra el mensaje.
     // ---------------------------------------------------------------
-    function Campo({ label, error, ...inputProps }) {
+    export function Campo({ label, error, ...inputProps }) {
     return (
         <View style={styles.grupo}>
         {/* Título del campo */}
@@ -82,7 +82,7 @@
     // SELECTOR: desplegable para Tipo y Estado.
     // Muestra el valor elegido y, al tocarlo, abre una lista de opciones.
     // ---------------------------------------------------------------
-    function Selector({ label, valor, opciones, placeholder, onChange, error }) {
+    export function Selector({ label, valor, opciones, placeholder, onChange, error }) {
     // Guarda si la lista de opciones está abierta o cerrada
     const [abierto, setAbierto] = useState(false);
 
@@ -304,7 +304,7 @@
     // ---------------------------------------------------------------
     // ESTILOS (copiados del estilo de SignUp)
     // ---------------------------------------------------------------
-    const styles = StyleSheet.create({
+    export const styles = StyleSheet.create({
     // Ocupa toda la pantalla con fondo blanco
     flex: { flex: 1, backgroundColor: COLORS.blanco },
 
