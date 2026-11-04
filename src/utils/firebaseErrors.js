@@ -1,6 +1,7 @@
 // Traduce los códigos de error de Firebase Auth a mensajes legibles para el usuario.
 // Para agregar un caso nuevo, alcanza con sumar una línea al objeto.
 
+// Diccionario: código de error de Firebase Auth -> mensaje en español.
 const MENSAJES_ERROR = {
   'auth/email-already-in-use': 'Este correo ya está registrado. Probá iniciar sesión.',
   'auth/invalid-email': 'El formato del correo electrónico no es válido.',
@@ -13,8 +14,10 @@ const MENSAJES_ERROR = {
   'auth/internal-error': 'Ocurrió un error en el servidor. Intentá de nuevo más tarde.',
 };
 
+// Mensaje que se muestra si el código no está en el diccionario.
 const MENSAJE_GENERICO = 'Hubo un problema al registrar el usuario. Intentá de nuevo.';
 
+// Recibe un código de error de Firebase Auth y devuelve el mensaje en español.
 export function traducirErrorFirebase(codigo) {
   return MENSAJES_ERROR[codigo] ?? MENSAJE_GENERICO;
 }
@@ -26,6 +29,7 @@ export function traducirErrorFirebase(codigo) {
 // devuelve error: deja la operación pendiente).
 // ---------------------------------------------------------------
 
+// Diccionario: código de error de Firestore -> mensaje en español.
 const MENSAJES_ERROR_FIRESTORE = {
   'permission-denied': 'No tenés permisos para realizar esta acción.',
   'unauthenticated': 'Tenés que iniciar sesión para realizar esta acción.',
@@ -39,8 +43,10 @@ const MENSAJES_ERROR_FIRESTORE = {
   'internal': 'Ocurrió un error en el servidor. Intentá de nuevo más tarde.',
 };
 
+// Mensaje que se muestra si el código de Firestore no está en el diccionario.
 const MENSAJE_GENERICO_FIRESTORE = 'Hubo un problema con la base de datos. Intentá de nuevo.';
 
+// Recibe un código de error de Firestore y devuelve el mensaje en español.
 export function traducirErrorFirestore(codigo) {
   return MENSAJES_ERROR_FIRESTORE[codigo] ?? MENSAJE_GENERICO_FIRESTORE;
 }

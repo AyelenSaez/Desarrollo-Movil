@@ -1,5 +1,9 @@
+// Punto de entrada de la aplicación: es el primer archivo que ejecuta Expo.
+
+// registerRootComponent: función de Expo que registra el componente principal de la app.
 import { registerRootComponent } from 'expo';
 
+// App: componente raíz que contiene toda la aplicación (ver App.js).
 import App from './App';
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);

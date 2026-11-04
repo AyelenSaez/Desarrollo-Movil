@@ -1,24 +1,29 @@
+// Funciones de Firestore (base de datos de Firebase):
 import {
-  collection,
-  doc,
-  addDoc,
-  getDoc,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  limit,
-  serverTimestamp,
+  collection,      // referencia a una colección (como una tabla)
+  doc,             // referencia a un documento puntual (como una fila)
+  addDoc,          // agrega un documento nuevo con id automático
+  getDoc,          // lee un documento por su id
+  getDocs,         // lee varios documentos (una colección o una consulta)
+  updateDoc,       // modifica campos de un documento existente
+  deleteDoc,       // borra un documento
+  query,           // arma una consulta con filtros
+  where,           // filtro de una consulta (campo == valor)
+  limit,           // limita la cantidad de resultados de una consulta
+  serverTimestamp, // fecha y hora del servidor de Firebase al guardar
 } from 'firebase/firestore';
+// db: instancia de Firestore configurada en firebaseConfig.
 import { db } from '../config/firebaseConfig';
+// COLECCIONES: nombres de las colecciones. Los *Schema: validaciones zod de cada tabla.
 import {
   COLECCIONES,
   equipoSchema,
   tipoEquipoSchema,
   estadoEquipoSchema,
 } from '../models/Equipo';
+// LISTA_TIPOS_EQUIPO: tipos iniciales que se precargan si la colección está vacía.
 import { LISTA_TIPOS_EQUIPO } from '../constants/tiposEquipo';
+// traducirErrorFirestore: convierte el código de error de Firestore en un mensaje en español.
 import { traducirErrorFirestore } from '../utils/firebaseErrors';
  
 // Todas las funciones del CRUD de equipos, tipos y estados.
@@ -29,6 +34,8 @@ import { traducirErrorFirestore } from '../utils/firebaseErrors';
 // un error: deja la operación pendiente. Por eso se corta la espera.
 const TIEMPO_ESPERA_MS = 8000;
  
+// Envuelve una operación (promesa): si no termina en TIEMPO_ESPERA_MS,
+// la corta con el error 'sin-conexion'. Promise.race se queda con la que termine primero.
 function conTiempoLimite(promesa) {
   let temporizador;
   const limite = new Promise((_, reject) => {
@@ -54,6 +61,8 @@ function validar(schema, datos) {
 // ---------- Funciones genéricas que comparten las tres tablas ----------
 // campoId es el nombre de la PK: id_equipo, id_tipoeq o id_estadoeq
  
+// Lee todos los documentos de una colección (opcionalmente con un filtro where)
+// y devuelve un array de objetos con el id incluido.
 async function listar(coleccion, campoId, filtro) {
   try {
     const ref = collection(db, coleccion);
@@ -64,6 +73,7 @@ async function listar(coleccion, campoId, filtro) {
   }
 }
  
+// Lee un único documento por su id. Si no existe, devuelve el error 'not-found'.
 async function obtener(coleccion, campoId, id) {
   try {
     const snap = await getDoc(doc(db, coleccion, id));
@@ -76,6 +86,7 @@ async function obtener(coleccion, campoId, id) {
   }
 }
  
+// Valida los datos con el esquema y, si están bien, crea un documento nuevo.
 async function crear(coleccion, campoId, schema, datos) {
   const validacion = validar(schema, datos);
   if (!validacion.ok) return validacion;
@@ -87,6 +98,7 @@ async function crear(coleccion, campoId, schema, datos) {
   }
 }
  
+// Valida los datos y modifica el documento con ese id.
 async function actualizar(coleccion, schema, id, datos) {
   // partial(): permite actualizar solo algunos campos
   const validacion = validar(schema.partial(), datos);
@@ -99,6 +111,7 @@ async function actualizar(coleccion, schema, id, datos) {
   }
 }
  
+// Borra el documento con ese id de la colección indicada.
 async function eliminar(coleccion, id) {
   try {
     await conTiempoLimite(deleteDoc(doc(db, coleccion, id)));
@@ -122,17 +135,22 @@ async function eliminarSiNoEstaEnUso(coleccion, campoFk, id, mensajeEnUso) {
  
 // ---------- EQUIPOS ----------
  
+// Devuelve todos los equipos tal como están guardados (con los id de tipo y estado).
 export const obtenerEquipos = () => listar(COLECCIONES.EQUIPOS, 'id_equipo');
- 
+
+// Devuelve solo los equipos de un tipo determinado.
 export const obtenerEquiposPorTipo = (id_tipoeq) =>
   listar(COLECCIONES.EQUIPOS, 'id_equipo', where('id_tipoeq', '==', id_tipoeq));
- 
+
+// Devuelve un equipo por su id.
 export const obtenerEquipoPorId = (id) => obtener(COLECCIONES.EQUIPOS, 'id_equipo', id);
- 
+
+// Crea un equipo sin verificar duplicados (para eso está registrarEquipo).
 /** @param {{ id_tipoeq: string, id_estadoeq: string, nombre_equipo: string, cantidad_equipo: number }} datos */
 export const crearEquipo = (datos) =>
   crear(COLECCIONES.EQUIPOS, 'id_equipo', equipoSchema, datos);
- 
+
+// Actualiza algunos campos de un equipo sin verificar duplicados (para eso está modificarEquipo).
 export const actualizarEquipo = (id, datos) =>
   actualizar(COLECCIONES.EQUIPOS, equipoSchema, id, datos);
  
@@ -142,6 +160,7 @@ export const actualizarEquipo = (id, datos) =>
  * Devuelve { ok: true, datos } o { ok: false, codigo, mensaje }.
  */
 export async function listarEquipos() {
+  // Promise.all: hace las tres consultas al mismo tiempo y espera a que terminen todas
   const [equipos, tipos, estados] = await Promise.all([
     obtenerEquipos(),
     obtenerTiposEquipo(),
@@ -168,10 +187,48 @@ export async function listarEquipos() {
       tipo: nombreTipo[e.id_tipoeq] ?? 'Sin tipo',
       cantidad: e.cantidad_equipo,
       estado: nombreEstado[e.id_estadoeq] ?? 'Sin estado',
+      descripcion: e.descripcion_equipo ?? '',
     }))
+    // Orden alfabético en español, sin distinguir mayúsculas ni acentos
     .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }));
- 
+
   return { ok: true, datos };
+}
+
+/**
+ * Trae un equipo con los nombres de su tipo y estado (no solo los id),
+ * para la pantalla de detalle.
+ * Devuelve { ok: true, dato } o { ok: false, codigo, mensaje }.
+ * dato: { id_equipo, nombre, tipo, estado, cantidad, descripcion, fechaAlta (Date o null) }
+ */
+export async function obtenerDetalleEquipo(id) {
+  const [equipo, tipos, estados] = await Promise.all([
+    obtenerEquipoPorId(id),
+    obtenerTiposEquipo(),
+    obtenerEstadosEquipo(),
+  ]);
+
+  if (!equipo.ok) return equipo;
+  if (!tipos.ok) return tipos;
+  if (!estados.ok) return estados;
+
+  const e = equipo.dato;
+  const tipo = tipos.datos.find((t) => t.id_tipoeq === e.id_tipoeq);
+  const estado = estados.datos.find((s) => s.id_estadoeq === e.id_estadoeq);
+
+  return {
+    ok: true,
+    dato: {
+      id_equipo: e.id_equipo,
+      nombre: e.nombre_equipo ?? 'Sin nombre',
+      tipo: tipo?.nombre_tipoeq ?? 'Sin tipo',
+      estado: estado?.nombre_estadoeq ?? 'Sin estado',
+      cantidad: e.cantidad_equipo,
+      descripcion: e.descripcion_equipo ?? '',
+      // fecha_alta es un Timestamp de Firestore: toDate() lo pasa a fecha de JS
+      fechaAlta: e.fecha_alta?.toDate ? e.fecha_alta.toDate() : null,
+    },
+  };
 }
  
 // ---------- VERIFICAR DUPLICADOS Y REGISTRAR EQUIPO (S4-08 / S4-09) ----------
@@ -320,17 +377,22 @@ export async function eliminarEquipo(id) {
  
 // ---------- TIPOS DE EQUIPOS ----------
  
+// Devuelve todos los tipos de equipo.
 export const obtenerTiposEquipo = () => listar(COLECCIONES.TIPOS_EQUIPOS, 'id_tipoeq');
- 
+
+// Devuelve un tipo de equipo por su id.
 export const obtenerTipoEquipoPorId = (id) =>
   obtener(COLECCIONES.TIPOS_EQUIPOS, 'id_tipoeq', id);
- 
+
+// Crea un tipo de equipo nuevo.
 export const crearTipoEquipo = (datos) =>
   crear(COLECCIONES.TIPOS_EQUIPOS, 'id_tipoeq', tipoEquipoSchema, datos);
- 
+
+// Modifica el nombre de un tipo de equipo.
 export const actualizarTipoEquipo = (id, datos) =>
   actualizar(COLECCIONES.TIPOS_EQUIPOS, tipoEquipoSchema, id, datos);
- 
+
+// Elimina un tipo de equipo, solo si ningún equipo lo usa.
 export const eliminarTipoEquipo = (id) =>
   eliminarSiNoEstaEnUso(COLECCIONES.TIPOS_EQUIPOS, 'id_tipoeq', id,
     'No se puede eliminar: hay equipos de este tipo.');
@@ -348,17 +410,22 @@ export async function cargarTiposIniciales() {
  
 // ---------- ESTADOS DE EQUIPOS ----------
  
+// Devuelve todos los estados de equipo.
 export const obtenerEstadosEquipo = () => listar(COLECCIONES.ESTADOS_EQUIPOS, 'id_estadoeq');
- 
+
+// Devuelve un estado de equipo por su id.
 export const obtenerEstadoEquipoPorId = (id) =>
   obtener(COLECCIONES.ESTADOS_EQUIPOS, 'id_estadoeq', id);
- 
+
+// Crea un estado de equipo nuevo.
 export const crearEstadoEquipo = (datos) =>
   crear(COLECCIONES.ESTADOS_EQUIPOS, 'id_estadoeq', estadoEquipoSchema, datos);
- 
+
+// Modifica el nombre de un estado de equipo.
 export const actualizarEstadoEquipo = (id, datos) =>
   actualizar(COLECCIONES.ESTADOS_EQUIPOS, estadoEquipoSchema, id, datos);
- 
+
+// Elimina un estado de equipo, solo si ningún equipo lo usa.
 export const eliminarEstadoEquipo = (id) =>
   eliminarSiNoEstaEnUso(COLECCIONES.ESTADOS_EQUIPOS, 'id_estadoeq', id,
     'No se puede eliminar: hay equipos con este estado.');

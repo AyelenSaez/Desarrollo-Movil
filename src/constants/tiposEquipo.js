@@ -2,6 +2,7 @@
 // Las pantallas usan esta constante en vez de escribir los nombres a mano.
 // El servicio la usa para precargar la colección si está vacía (ver cargarTiposIniciales).
 
+// Objeto con los nombres de cada tipo, para usarlos como TIPOS_EQUIPO.SONIDO, etc.
 export const TIPOS_EQUIPO = {
   SONIDO: 'Sonido',
   ILUMINACION: 'Iluminación',
