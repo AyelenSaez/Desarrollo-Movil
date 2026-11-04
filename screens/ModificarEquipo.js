@@ -27,11 +27,16 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { equipoFormSchema } from "../src/validations/equipoFormSchema";
 
-// Trae el equipo por ID con los nombres de su tipo y estado
-import { obtenerDetalleEquipo } from "../src/services/equipoService";
+// obtenerDetalleEquipo: trae el equipo por ID con los nombres de su tipo y estado
+// modificarEquipo: guarda los cambios (verifica que no quede duplicado)
+import { obtenerDetalleEquipo, modificarEquipo } from "../src/services/equipoService";
 
-// Mismos campos, colores y estilos que la pantalla de registro
-import { COLORS, FormularioEquipo, styles } from "./RegistroEquipo";
+// avisos en pantalla (exito o error)
+import { useNotificacion } from "../components/Notificacion";
+
+// Mismos campos, colores y estilos que la pantalla de registro,
+// y la función que busca (o crea) los id del tipo y del estado
+import { COLORS, FormularioEquipo, styles, obtenerIdsTipoEstado } from "./RegistroEquipo";
 
 // ---------------------------------------------------------------
 // PANTALLA: formulario para modificar un equipo
@@ -45,6 +50,9 @@ export default function ModificarEquipo({ navigation, route }) {
     // Guarda si todavía se están trayendo los datos y si hubo un error
     const [cargando, setCargando] = useState(true);
     const [errorCarga, setErrorCarga] = useState("");
+    // true mientras se guarda, para no guardar dos veces si tocan el boton de nuevo
+    const [guardando, setGuardando] = useState(false);
+    const { mostrarNotificacion } = useNotificacion();
 
     // Mismo formulario que el registro (mismo esquema de validación)
     const {
@@ -107,10 +115,33 @@ export default function ModificarEquipo({ navigation, route }) {
     };
 
     // Se ejecuta al tocar "Guardar cambios", pero SOLO si todos los campos son válidos.
-    // Por ahora solo muestra los datos en la consola.
-    // El guardado en Firestore (S5-09) lo conecta quien tenga esa tarea acá adentro.
-    const onSubmit = (datos) => {
-        console.log("Datos a modificar:", { idEquipo, ...datos });
+    // Guardado en Firestore (S5-09): igual que el registro, primero se buscan
+    // los id del tipo y del estado y después se actualiza el equipo.
+    const onSubmit = async (datos) => {
+        if (guardando) return;
+        setGuardando(true);
+        try {
+            const ids = await obtenerIdsTipoEstado(datos.tipo, datos.estado);
+            if (!ids.ok) return mostrarNotificacion(ids.mensaje, "error");
+
+            // modificarEquipo también revisa que no haya otro equipo con el mismo nombre y tipo
+            const resultado = await modificarEquipo(idEquipo, {
+                id_tipoeq: ids.id_tipoeq,
+                id_estadoeq: ids.id_estadoeq,
+                nombre_equipo: datos.nombre.trim(),
+                cantidad_equipo: Number(datos.cantidad),
+                descripcion_equipo: datos.descripcion ?? "",
+            });
+
+            if (resultado.ok) {
+                mostrarNotificacion(resultado.mensaje, "exito");
+                volver(); // vuelve al detalle o al listado, que se recargan solos
+            } else {
+                mostrarNotificacion(resultado.mensaje, "error");
+            }
+        } finally {
+            setGuardando(false);
+        }
     };
 
     return (
@@ -147,8 +178,14 @@ export default function ModificarEquipo({ navigation, route }) {
                         <FormularioEquipo control={control} mensajeError={mensajeError} />
 
                         {/* Botón principal: valida el formulario y ejecuta onSubmit */}
-                        <TouchableOpacity style={styles.boton} onPress={handleSubmit(onSubmit)}>
-                            <Text style={styles.botonTexto}>Guardar cambios</Text>
+                        <TouchableOpacity
+                            style={[styles.boton, guardando && { opacity: 0.6 }]}
+                            onPress={handleSubmit(onSubmit)}
+                            disabled={guardando}
+                        >
+                            <Text style={styles.botonTexto}>
+                                {guardando ? "Guardando..." : "Guardar cambios"}
+                            </Text>
                         </TouchableOpacity>
                     </>
                 )}
