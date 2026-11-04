@@ -1,4 +1,3 @@
-// z (Zod): librería para definir "esquemas" que validan la forma y el tipo de los datos.
 import { z } from 'zod';
 
 // Modelos de las tablas EQUIPOS, TIPO_EQUIPOS y ESTADOS_EQUIPOS.
@@ -20,7 +19,6 @@ export const COLECCIONES = {
  * @property {string} id_estadoeq      FK -> EstadoEquipo
  * @property {string} nombre_equipo
  * @property {number} cantidad_equipo  entero, 0 o más
- * @property {string} [descripcion_equipo]  opcional (ej: "Original")
  */
 
 /**
@@ -37,7 +35,6 @@ export const COLECCIONES = {
  * @property {string} nombre_estadoeq
  */
 
-// Mensaje de error reutilizado en todos los campos obligatorios.
 const OBLIGATORIO = 'Este campo es obligatorio';
 
 // Validaciones de los datos que se guardan (sin el id, que lo genera Firestore)
@@ -45,21 +42,16 @@ export const equipoSchema = z.object({
   id_tipoeq: z.string().min(1, OBLIGATORIO),
   id_estadoeq: z.string().min(1, OBLIGATORIO),
   nombre_equipo: z.string().trim().min(1, OBLIGATORIO),
-  // z.coerce convierte el valor a número (por ejemplo, el texto "5" pasa a 5)
   cantidad_equipo: z.coerce
     .number({ message: 'La cantidad debe ser un número' })
     .int('La cantidad debe ser un número entero')
     .min(0, 'La cantidad no puede ser negativa'),
-  // Descripción: opcional, los equipos guardados antes no la tienen
-  descripcion_equipo: z.string().trim().optional(),
 });
 
-// Validación de un tipo de equipo: solo necesita un nombre no vacío.
 export const tipoEquipoSchema = z.object({
   nombre_tipoeq: z.string().trim().min(1, OBLIGATORIO),
 });
 
-// Validación de un estado de equipo: solo necesita un nombre no vacío.
 export const estadoEquipoSchema = z.object({
   nombre_estadoeq: z.string().trim().min(1, OBLIGATORIO),
 });

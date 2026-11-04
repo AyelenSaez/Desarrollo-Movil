@@ -1,30 +1,13 @@
-// Pantalla "¿Olvidó su contraseña?": pide el correo y envía un enlace
-// de Firebase para restablecer la contraseña. Después muestra "Revise su correo".
-
-// React y useState: guardar valores de la pantalla (enviado, errores, cargando).
 import React, { useState } from 'react';
-// Componentes de React Native: View (contenedor), Text (texto), TextInput (campo de texto),
-// TouchableOpacity (botón), StyleSheet (estilos), Image (logo), ScrollView (scroll),
-// KeyboardAvoidingView (evita que el teclado tape el campo), Platform (iOS o Android).
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-// FontAwesome: íconos (sobre de correo).
 import { FontAwesome } from '@expo/vector-icons';
-// sendPasswordResetEmail: le pide a Firebase que mande el correo para cambiar la contraseña.
 import { sendPasswordResetEmail } from 'firebase/auth';
-// useForm: maneja el formulario. Controller: conecta el TextInput con el formulario.
 import { useForm, Controller } from 'react-hook-form';
-// zodResolver: hace que react-hook-form valide con el esquema de zod.
 import { zodResolver } from '@hookform/resolvers/zod';
-// z (zod): para definir la regla de validación del correo.
 import { z } from 'zod';
-// auth: instancia de Firebase Auth.
 import { auth } from '../src/config/firebaseConfig';
-// MensajeError: recuadro rojo (banner) cuando falla el envío.
 import MensajeError from '../components/MensajeError';
-// useNotificacion: muestra avisos de "Enlace enviado" o de error.
 import { useNotificacion } from '../components/Notificacion';
-// FUENTES: fuente Work Sans de toda la app (reemplaza a fontWeight)
-import { FUENTES } from '../src/theme/fuentes';
  
 // ESQUEMA DE VALIDACIÓN (zod)
 // Solo se pide el correo: no puede estar vacío y debe tener formato válido.
@@ -36,7 +19,6 @@ const forgotSchema = z.object({
     .email('El formato del correo electrónico no es válido'),
 });
  
-// "navigation" sirve para volver al Login con goBack().
 export default function ForgotPassword({ navigation }) {
   // ESTADOS LOCALES
   const [enviado, setEnviado] = useState(false);          // false = pantalla del formulario, true = pantalla "Revise su correo"
@@ -47,9 +29,9 @@ export default function ForgotPassword({ navigation }) {
  
   // CONFIGURACIÓN DEL FORMULARIO (react-hook-form)
   const {
-    control,       // conecta el Controller con el formulario
-    handleSubmit,  // valida y, si está bien, ejecuta onSubmit
-    watch,         // lee en vivo el valor del campo
+    control,
+    handleSubmit,
+    watch,
   } = useForm({
     resolver: zodResolver(forgotSchema),
     defaultValues: { email: '' },
@@ -108,7 +90,7 @@ export default function ForgotPassword({ navigation }) {
     }
   };
  
-  // PANTALLA: "Revise su correo" (después de enviar el enlace)
+  // PANTALL: "Revise su correo" (después de enviar el enlace)
   if (enviado) {
     return (
       <View style={styles.wrapper}>
@@ -139,7 +121,6 @@ export default function ForgotPassword({ navigation }) {
  
   // PANTALLA: formulario para pedir el enlace
   return (
-    // Evita que el teclado tape el campo
     <KeyboardAvoidingView
       style={styles.wrapper}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -213,7 +194,6 @@ export default function ForgotPassword({ navigation }) {
   );
 }
  
-// Estilos de las dos vistas: formulario y "Revise su correo"
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
@@ -243,21 +223,19 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   titulo: {
-    fontFamily: FUENTES.bold,
     alignSelf: 'flex-start',
     fontSize: 28,
+    fontWeight: 'bold',
     color: '#0b2f5b',
     marginBottom: 12,
   },
   subtitulo: {
-    fontFamily: FUENTES.regular,
     alignSelf: 'flex-start',
     fontSize: 18,
     color: '#0b2f5b',
     marginBottom: 30,
   },
   requiredNote: {
-    fontFamily: FUENTES.regular,
     alignSelf: 'flex-start',
     marginBottom: 10,
     fontSize: 14,
@@ -267,9 +245,9 @@ const styles = StyleSheet.create({
     color: '#d32f2f',
   },
   label: {
-    fontFamily: FUENTES.bold,
     alignSelf: 'flex-start',
     fontSize: 18,
+    fontWeight: 'bold',
     color: '#0b2f5b',
     marginBottom: 8,
   },
@@ -291,7 +269,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   input: {
-    fontFamily: FUENTES.regular,
     flex: 1,
     height: 44,
     fontSize: 16,
@@ -308,15 +285,15 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    fontFamily: FUENTES.bold,
     color: '#fff',
     fontSize: 18,
+    fontWeight: 'bold',
   },
   volverTexto: {
-    fontFamily: FUENTES.bold,
     marginTop: 20,
     color: '#0b2f5b',
     fontSize: 16,
+    fontWeight: 'bold',
   },
   // Pantalla "Revise su correo"
   iconoCirculo: {
@@ -329,27 +306,25 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   tituloCentrado: {
-    fontFamily: FUENTES.bold,
     fontSize: 28,
+    fontWeight: 'bold',
     color: '#0b2f5b',
     textAlign: 'center',
     marginBottom: 20,
   },
   textoCentrado: {
-    fontFamily: FUENTES.regular,
     fontSize: 18,
     color: '#0b2f5b',
     textAlign: 'center',
     marginBottom: 60,
   },
   reenviarTexto: {
-    fontFamily: FUENTES.regular,
     marginTop: 20,
     fontSize: 16,
     color: '#333',
   },
   reenviarBold: {
-    fontFamily: FUENTES.bold,
+    fontWeight: 'bold',
     color: '#0b2f5b',
   },
 });

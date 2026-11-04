@@ -1,11 +1,6 @@
-// React: necesario para escribir JSX.
 import React from 'react';
-// View: contenedor. Text: texto. TouchableOpacity: botón. StyleSheet: estilos.
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-// FontAwesome: íconos (cruz "times" y triángulo de advertencia).
 import { FontAwesome } from '@expo/vector-icons';
-// FUENTES: fuente Work Sans de toda la app (reemplaza a fontWeight)
-import { FUENTES } from '../src/theme/fuentes';
 
 // Colores del diseño en Figma (Infinito Sonido e Iluminación)
 const COLORES = {
@@ -27,9 +22,7 @@ const COLORES = {
  *  - codigo:  código de Firebase, ej. 'auth/email-already-in-use'
  */
 export default function RegistroFallido({ route, navigation }) {
-  // Lee los parámetros que mandó SignUp al navegar a esta pantalla
   const { mensaje, codigo } = route?.params ?? {};
-  // Si el correo ya existe, se ofrece además el enlace para ir al Login
   const correoYaRegistrado = codigo === 'auth/email-already-in-use';
 
   return (
@@ -50,7 +43,6 @@ export default function RegistroFallido({ route, navigation }) {
       </View>
 
       <View style={styles.acciones}>
-        {/* Vuelve al formulario de registro para intentar de nuevo */}
         <TouchableOpacity style={styles.boton} onPress={() => navigation.goBack()}>
           <Text style={styles.textoBoton}>Intentar de nuevo</Text>
         </TouchableOpacity>
@@ -67,7 +59,6 @@ export default function RegistroFallido({ route, navigation }) {
   );
 }
 
-// Estilos: círculo rojo, título, caja de error y botón verde.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -89,8 +80,8 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   titulo: {
-    fontFamily: FUENTES.bold,
     fontSize: 30,
+    fontWeight: 'bold',
     color: COLORES.azulTitulo,
     textAlign: 'center',
     letterSpacing: 1,
@@ -107,7 +98,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORES.rojoFondo,
   },
   textoError: {
-    fontFamily: FUENTES.regular,
     flex: 1,
     marginLeft: 12,
     fontSize: 18,
@@ -126,18 +116,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   textoBoton: {
-    fontFamily: FUENTES.bold,
     color: COLORES.blanco,
     fontSize: 24,
+    fontWeight: 'bold',
   },
   enlace: {
-    fontFamily: FUENTES.regular,
     marginTop: 18,
     fontSize: 18,
     color: '#000000',
   },
   enlaceNegrita: {
-    fontFamily: FUENTES.bold,
+    fontWeight: 'bold',
     color: COLORES.azulTitulo,
   },
 });

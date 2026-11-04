@@ -1,30 +1,13 @@
-// Pantalla de inicio de sesión: formulario de correo y contraseña,
-// opción "Recordar", enlace para recuperar la contraseña y enlace al registro.
-
-// React y hooks: useState (valores de la pantalla) y useEffect (código al abrir la pantalla).
 import React, { useState, useEffect } from 'react';
-// Componentes de React Native: View (contenedor), Text (texto), TextInput (campo de texto),
-// TouchableOpacity (botón), StyleSheet (estilos), Alert (cuadro de alerta, importado pero sin uso),
-// Image (logo), ScrollView (scroll), KeyboardAvoidingView (evita que el teclado tape los campos),
-// Platform (saber si es iOS o Android).
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-// FontAwesome: íconos (sobre, candado, ojo, checkbox).
 import { FontAwesome } from '@expo/vector-icons';
-// signInWithEmailAndPassword: inicia sesión en Firebase con correo y contraseña.
 import { signInWithEmailAndPassword } from 'firebase/auth';
-// useForm: maneja el estado y la validación del formulario. Controller: conecta un TextInput al formulario.
 import { useForm, Controller } from 'react-hook-form';
-// zodResolver: permite que react-hook-form valide usando un esquema de zod.
 import { zodResolver } from '@hookform/resolvers/zod';
-// z (zod): para definir las reglas de validación del formulario.
 import { z } from 'zod';
 import * as SecureStore from 'expo-secure-store'; // guarda datos de forma cifrada en el celular
-// auth: instancia de Firebase Auth.
 import { auth } from '../src/config/firebaseConfig';
-// MensajeError: muestra errores debajo de un campo o en un recuadro (banner).
-import MensajeError from '../components/MensajeError';
-// FUENTES: fuente Work Sans de toda la app (reemplaza a fontWeight)
-import { FUENTES } from '../src/theme/fuentes';
+import MensajeError from '../components/MensajeError'; 
 // ESQUEMA DE VALIDACIÓN (zod)
 // Define cómo debe ser un formulario válido. Las reglas se  evalúan en orden: si el campo está vacío se muestra el primer mensaje y no el del formato.
 
@@ -43,13 +26,11 @@ const loginSchema = z.object({
 const CLAVE_EMAIL = 'recordar_email';
 const CLAVE_PASSWORD = 'recordar_password';
 
-// Pantalla de Login. "navigation" sirve para ir a SignUp o ForgotPassword.
-// "setMostrarExito" viene de Navigation.js y activa la pantalla de login exitoso.
-export default function Login({ navigation, setMostrarExito }) {
+export default function Login({ navigation, setMostrarExito }) { 
   // ESTADOS LOCALES
   const [showPassword, setShowPassword] = useState(false); // true = contraseña visible
-  const [remember, setRemember] = useState(false);         // estado del checkbox "Recordarme"
-  const [loginError, setLoginError] = useState(null);         // error del inicio de sesión: { message, fields } o null
+  const [remember, setRemember] = useState(false);
+  const [loginError, setLoginError] = useState(null);         // estado del checkbox "Recordarme"
 
   // CONFIGURACIÓN DEL FORMULARIO (react-hook-form)
   const {
@@ -110,8 +91,6 @@ export default function Login({ navigation, setMostrarExito }) {
     } catch (error) {
       setMostrarExito?.(false); // el login falló: no mostrar la pantalla de éxito
       console.log('Error de inicio de sesión:', error.code, error.message);
-      // Según el código de error de Firebase, se elige el mensaje a mostrar.
-      // fields: true = además se pintan en rojo los dos campos.
       switch (error.code) {
         case 'auth/invalid-email':
         case 'auth/invalid-credential':
@@ -144,18 +123,15 @@ const passRojo = (!!errors.password && passwordActual !== '') || !!loginError?.f
 
   // INTERFAZ
   return (
-    // Evita que el teclado tape los campos
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: '#fff' }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-    {/* Scroll: permite desplazarse si el teclado ocupa espacio; arrastrar cierra el teclado */}
     <ScrollView
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
     >
-      {/* Logo de la empresa (con menos margen si hay un error para que entre el banner) */}
       <Image
         source={require('../assets/logo.png')}
         style={[styles.logo, loginError && { marginBottom: 20 }]}
@@ -236,7 +212,7 @@ const passRojo = (!!errors.password && passwordActual !== '') || !!loginError?.f
           <Text style={styles.rememberText}>Recordar</Text>
         </TouchableOpacity>
 
-        {/* Enlace de recuperación: lleva a la pantalla ForgotPassword */}
+        {/* Enlace de recuperación (por ahora solo muestra una alerta) */}
         <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
           <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
         </TouchableOpacity>
@@ -262,8 +238,6 @@ const passRojo = (!!errors.password && passwordActual !== '') || !!loginError?.f
   );
 }
 
-// Estilos de la pantalla de Login
-// (errorText, errorRow, banner y bannerText ya no se usan: ahora eso lo hace MensajeError)
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
@@ -281,14 +255,14 @@ const styles = StyleSheet.create({
     marginBottom: 80,
   },
   title: {
-    fontFamily: FUENTES.bold,
     fontSize: 24,
+    fontWeight: 'bold',
     marginBottom: 20,
   },
   label: {
-    fontFamily: FUENTES.bold,
     alignSelf: 'flex-start',
     fontSize: 18,
+    fontWeight: 'bold',
     marginTop: 10,
     color: '#0b2f5b',
   },
@@ -307,7 +281,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   input: {
-    fontFamily: FUENTES.regular,
     flex: 1,
     height: 44,
     fontSize: 16,
@@ -325,13 +298,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     },  
   rememberText:{
-    fontFamily: FUENTES.regular,
     marginLeft: 6,
     fontSize: 15,
     },
   forgotText:{
-    fontFamily: FUENTES.bold,
     fontSize: 15,
+    fontWeight: 'bold',
     color:'#0b2f5b',
     },      
   button: {
@@ -347,21 +319,19 @@ const styles = StyleSheet.create({
   },
 
   buttonText: {
-    fontFamily: FUENTES.bold,
     color: '#fff',
     fontSize: 18,
+    fontWeight: 'bold',
   },
   signUpText: {
-    fontFamily: FUENTES.regular,
     marginTop: 20,
     color: '#0b2f5b',
     fontSize: 16,
   },
   signUpBold: {
-    fontFamily: FUENTES.bold,
+    fontWeight:"bold",
   },
   requiredNote: {
-    fontFamily: FUENTES.regular,
     alignSelf: 'flex-start',
     marginBottom: 10,
     fontSize: 14,
@@ -373,7 +343,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   errorText: {
-    fontFamily: FUENTES.regular,
     color: '#e05252',
     fontSize: 14,
     marginLeft: 10,
@@ -397,7 +366,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   bannerText: {
-    fontFamily: FUENTES.regular,
     flex: 1,
     color: '#e05252',
     fontSize: 14,

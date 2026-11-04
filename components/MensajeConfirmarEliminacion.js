@@ -1,13 +1,6 @@
-// React: necesario para escribir JSX.
 import React from 'react';
-// Modal: ventana que se muestra encima de la pantalla actual.
-// View/Text: contenedor y texto. TouchableOpacity: botón.
-// Pressable: zona tocable (acá se usa para el fondo y la tarjeta). StyleSheet: estilos.
 import { Modal, View, Text, TouchableOpacity, Pressable, StyleSheet } from 'react-native';
-// Ionicons: set de íconos (acá se usa la papelera "trash-outline").
 import { Ionicons } from '@expo/vector-icons';
-// FUENTES: fuente Work Sans de toda la app (reemplaza a fontWeight)
-import { FUENTES } from '../src/theme/fuentes';
  
 // Mensaje de confirmación previo a eliminar un equipo (S5-10, fiel a Figma).
 // Se muestra encima de la pantalla con un fondo gris translúcido y dos botones.
@@ -33,7 +26,6 @@ const COLORS = {
   cancelarBorde: '#bdbdbd',
 };
  
-// Componente del cartel de "¿Eliminar este equipo?". Ver "Uso" arriba para las props.
 export default function MensajeConfirmarEliminacion({
   visible,
   nombre,
@@ -91,7 +83,6 @@ export default function MensajeConfirmarEliminacion({
   );
 }
  
-// Estilos del fondo gris, la tarjeta blanca, el círculo rosa y los dos botones.
 const styles = StyleSheet.create({
   fondo: {
     flex: 1,
@@ -126,14 +117,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   titulo: {
-    fontFamily: FUENTES.bold,
     fontSize: 20,
+    fontWeight: 'bold',
     color: COLORS.titulo,
     textAlign: 'center',
     marginBottom: 10,
   },
   mensaje: {
-    fontFamily: FUENTES.regular,
     fontSize: 15,
     lineHeight: 22,
     color: COLORS.mensaje,
@@ -163,13 +153,12 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   textoCancelar: {
-    fontFamily: FUENTES.regular,
     color: COLORS.cancelarTexto,
     fontSize: 15,
   },
   textoEliminar: {
-    fontFamily: FUENTES.semibold,
     color: COLORS.blanco,
     fontSize: 15,
+    fontWeight: '600',
   },
 });

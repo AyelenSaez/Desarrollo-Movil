@@ -1,35 +1,22 @@
-// Pantalla de registro de usuario: formulario con nombre, apellido, correo,
-// contraseña (con checklist de requisitos), confirmación y términos y condiciones.
-
-// React y useState: guardar valores de la pantalla (cargando, errores, ver contraseña).
 import React, { useState } from "react";
-// Componentes de React Native:
 import {
-  View,                 // contenedor
-  Text,                 // texto
-  TextInput,            // campo de texto
-  TouchableOpacity,     // botón que se puede tocar
-  ScrollView,           // pantalla con scroll
-  StyleSheet,           // crear estilos
-  Image,                // logo
-  KeyboardAvoidingView, // evita que el teclado tape los campos
-  Platform,             // saber si es iOS o Android
-  ActivityIndicator,    // ruedita de carga dentro del botón
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
 } from "react-native";
-// Ionicons: íconos (sobre, candado, ojo, checkbox, checks de requisitos).
 import { Ionicons } from "@expo/vector-icons";
-// useForm: maneja el formulario y sus errores. Controller: conecta cada campo con el formulario.
 import { useForm, Controller } from "react-hook-form";
-// zodResolver: hace que react-hook-form valide con el esquema de zod.
 import { zodResolver } from "@hookform/resolvers/zod";
-// z (zod): para definir las reglas de validación.
 import { z } from "zod";
-// createUserWithEmailAndPassword: crea la cuenta en Firebase con correo y contraseña.
 import { createUserWithEmailAndPassword } from "firebase/auth";
-// auth: instancia de Firebase Auth.
 import { auth } from "../src/config/firebaseConfig";
-// FUENTES: fuente Work Sans de toda la app (reemplaza a fontWeight)
-import { FUENTES } from '../src/theme/fuentes';
 import MensajeError from "../components/MensajeError"; // el mismo que usa Login
 
 // Colores tomados de Login.js para que las dos pantallas se vean igual
@@ -65,10 +52,6 @@ const REGLAS_PASSWORD = [
 // ---------------------------------------------------------------
 const OBLIGATORIO = "Este campo es obligatorio";
 
-// Esquema del formulario. .refine agrega reglas personalizadas:
-// - la contraseña debe cumplir todas las REGLAS_PASSWORD
-// - los términos deben estar aceptados
-// - la confirmación debe ser igual a la contraseña (el error se muestra en confirmPassword)
 const schema = z
   .object({
     nombre: z
@@ -106,10 +89,7 @@ const schema = z
 // ---------------------------------------------------------------
 // Campo de texto reutilizable (label + ícono + input + error)
 // ---------------------------------------------------------------
-// Props: label (título), icono (nombre de Ionicons), error (mensaje),
-// esPassword (agrega el botón del ojo) y el resto se pasa directo al TextInput.
 function Campo({ label, icono, error, esPassword, ...inputProps }) {
-  // true = texto oculto con puntitos (solo arranca oculto si es contraseña)
   const [oculto, setOculto] = useState(!!esPassword);
 
   return (
@@ -165,7 +145,6 @@ function Campo({ label, icono, error, esPassword, ...inputProps }) {
 // gris = todavía no escribió nada, verde = cumple, rojo = no cumple
 // ---------------------------------------------------------------
 function ReglasPassword({ password }) {
-  // true si el usuario ya escribió algo en la contraseña
   const empezo = password.length > 0;
 
   return (
@@ -196,23 +175,20 @@ function ReglasPassword({ password }) {
 // ---------------------------------------------------------------
 // Pantalla
 // ---------------------------------------------------------------
-// "navigation" sirve para volver al Login.
-// "setMostrarRegistroExito" viene de Navigation.js y activa la pantalla "Cuenta creada".
 export default function SignUp({ navigation, setMostrarRegistroExito }) {
-  const [cargando, setCargando] = useState(false);       // true mientras se crea la cuenta
-  const [errorGeneral, setErrorGeneral] = useState("");  // mensaje del banner de error
+  const [cargando, setCargando] = useState(false);
+  const [errorGeneral, setErrorGeneral] = useState("");
 
-  // Configuración del formulario (react-hook-form)
   const {
-    control,                // conecta cada Controller con el formulario
-    handleSubmit,           // valida y, si está todo bien, ejecuta onSubmit
-    watch,                  // lee en vivo el valor de un campo
-    trigger,                // fuerza la validación de un campo
-    getValues,              // lee el valor actual de un campo
-    formState: { errors },  // errores de cada campo
+    control,
+    handleSubmit,
+    watch,
+    trigger,
+    getValues,
+    formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
-    mode: "onTouched", // valida un campo recién cuando el usuario sale de él
+    mode: "onTouched",
     defaultValues: {
       nombre: "",
       apellido: "",
@@ -223,7 +199,6 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
     },
   });
 
-  // Contraseña actual, para actualizar el checklist mientras se escribe
   const password = watch("password");
 
   // Solo se ejecuta si la validación de zod pasó correctamente
@@ -240,7 +215,6 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
     } catch (error) {
       setMostrarRegistroExito?.(false); // falló: no mostrar la pantalla de éxito
       console.log("Error de registro:", error.code, error.message);
-      // Según el código de error de Firebase se elige el mensaje del banner
       switch (error.code) {
         case "auth/email-already-in-use":
           setErrorGeneral("El correo electrónico ya está registrado.");
@@ -269,17 +243,14 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
   };
 
   return (
-    // Evita que el teclado tape los campos en iOS
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      {/* Scroll: el formulario es largo y no entra entero en pantalla */}
       <ScrollView
         contentContainerStyle={styles.contenido}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Logo y línea azul debajo */}
         <Image
           source={require("../assets/logo.png")}
           style={styles.logo}
@@ -426,7 +397,7 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
           )}
         />
 
-        {/* Botón: valida el formulario y ejecuta onSubmit (muestra una ruedita mientras carga) */}
+        {/* Botón */}
         <TouchableOpacity
           style={[styles.boton, cargando && styles.botonDeshabilitado]}
           onPress={handleSubmit(onSubmit)}
@@ -457,7 +428,6 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
   );
 }
 
-// Estilos de la pantalla de registro
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: COLORS.blanco },
   contenido: {
@@ -475,13 +445,13 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   titulo: {
-    fontFamily: FUENTES.bold,
     fontSize: 22,
+    fontWeight: "700",
     color: COLORS.azul,
     marginBottom: 12,
   },
   grupo: { marginBottom: 14 },
-  label: { fontFamily: FUENTES.regular, fontSize: 14, color: COLORS.azul, marginBottom: 6 },
+  label: { fontSize: 14, color: COLORS.azul, marginBottom: 6 },
   asterisco: { color: COLORS.asterisco },
   inputWrap: {
     flexDirection: "row",
@@ -494,7 +464,7 @@ const styles = StyleSheet.create({
   },
   inputWrapError: { borderColor: COLORS.error },
   iconoIzq: { marginRight: 8 },
-  input: { fontFamily: FUENTES.regular, flex: 1, fontSize: 15, color: "#111827" },
+  input: { flex: 1, fontSize: 15, color: "#111827" },
   reglasBox: {
     backgroundColor: COLORS.fondoReglas,
     borderRadius: 8,
@@ -502,11 +472,11 @@ const styles = StyleSheet.create({
     marginTop: -4,
     marginBottom: 14,
   },
-  reglasTitulo: { fontFamily: FUENTES.regular, fontSize: 11, color: COLORS.icono, marginBottom: 4 },
+  reglasTitulo: { fontSize: 11, color: COLORS.icono, marginBottom: 4 },
   reglaFila: { flexDirection: "row", alignItems: "center", marginTop: 2 },
-  reglaTexto: { fontFamily: FUENTES.regular, fontSize: 11, marginLeft: 6 },
+  reglaTexto: { fontSize: 11, marginLeft: 6 },
   terminosFila: { flexDirection: "row", alignItems: "center" },
-  terminosTexto: { fontFamily: FUENTES.regular, fontSize: 12, color: COLORS.azul, marginLeft: 8 },
+  terminosTexto: { fontSize: 12, color: COLORS.azul, marginLeft: 8 },
   link: { textDecorationLine: "underline", color: COLORS.azul },
   boton: {
     backgroundColor: COLORS.verde,
@@ -517,9 +487,8 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   botonDeshabilitado: { opacity: 0.7 },
-  botonTexto: { fontFamily: FUENTES.bold, color: COLORS.blanco, fontSize: 16 },
+  botonTexto: { color: COLORS.blanco, fontSize: 16, fontWeight: "700" },
   leyenda: {
-    fontFamily: FUENTES.regular,
     fontSize: 12,
     color: "#333",
     textAlign: "center",
@@ -530,7 +499,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 16,
   },
-  pieTexto: { fontFamily: FUENTES.regular, fontSize: 13, color: "#111827" },
-  pieLink: { fontFamily: FUENTES.bold, fontSize: 13, color: "#111827" },
+  pieTexto: { fontSize: 13, color: "#111827" },
+  pieLink: { fontSize: 13, fontWeight: "700", color: "#111827" },
   errorWrap: { marginTop: 20 },
 });

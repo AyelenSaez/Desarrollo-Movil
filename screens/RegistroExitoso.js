@@ -1,11 +1,6 @@
-// React: necesario para escribir JSX.
 import React from "react";
-// View: contenedor. Text: texto. TouchableOpacity: botón. StyleSheet: estilos.
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-// Ionicons: set de íconos (acá se usa el check dentro del círculo).
 import { Ionicons } from "@expo/vector-icons";
-// FUENTES: fuente Work Sans de toda la app (reemplaza a fontWeight)
-import { FUENTES } from '../src/theme/fuentes';
 
 // Mismos colores que Login.js / SignUp.js
 const COLORS = {
@@ -41,7 +36,6 @@ export default function RegistroExitoso({ onIniciarSesion }) {
   );
 }
 
-// Estilos: contenido centrado (círculo, título y texto) y botón verde abajo.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -64,13 +58,12 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   titulo: {
-    fontFamily: FUENTES.bold,
     fontSize: 22,
+    fontWeight: "700",
     color: COLORS.azul,
     marginBottom: 8,
   },
   texto: {
-    fontFamily: FUENTES.regular,
     fontSize: 15,
     color: COLORS.azul,
     textAlign: "center",
@@ -85,8 +78,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   botonTexto: {
-    fontFamily: FUENTES.bold,
     color: COLORS.blanco,
     fontSize: 16,
+    fontWeight: "700",
   },
 });

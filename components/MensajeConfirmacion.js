@@ -1,16 +1,8 @@
-// React: necesario para escribir JSX.
 import React from 'react';
-// View: contenedor. Text: texto. TouchableOpacity: botón que se opaca al tocarlo.
-// StyleSheet: crear los estilos.
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-// FontAwesome: set de íconos (acá se usa el ícono de "check" ✓).
 import { FontAwesome } from '@expo/vector-icons';
-// FUENTES: fuente Work Sans de toda la app (reemplaza a fontWeight)
-import { FUENTES } from '../src/theme/fuentes';
 
 // Componente reutilizable de confirmación (login exitoso, registro exitoso, etc.)
-// Props: titulo y mensaje (textos a mostrar), textoBoton (texto del botón)
-// y onPress (función que se ejecuta al tocar el botón).
 export default function MensajeConfirmacion({ titulo, mensaje, textoBoton, onPress }) {
   return (
     <View style={styles.container}>
@@ -29,7 +21,6 @@ export default function MensajeConfirmacion({ titulo, mensaje, textoBoton, onPre
   );
 }
 
-// Estilos: círculo azul con el check, título, mensaje y botón verde abajo.
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -51,13 +42,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    fontFamily: FUENTES.bold,
     fontSize: 24,
+    fontWeight: 'bold',
     color: '#0b2f5b',
     marginTop: 24,
   },
   message: {
-    fontFamily: FUENTES.regular,
     fontSize: 16,
     color: '#333',
     textAlign: 'center',
@@ -71,8 +61,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {
-    fontFamily: FUENTES.bold,
     color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
   },
 });
