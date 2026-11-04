@@ -64,6 +64,33 @@ import React, { useState } from "react";
     return encontrado ? encontrado[campoId] : undefined;
     };
 
+    // El formulario tiene el nombre del tipo y del estado, pero en la base se guardan sus id,
+    // asi que se buscan (o se crean si no existen). Lo usan Agregar y Editar.
+    // Devuelve { ok: true, id_tipoeq, id_estadoeq } o { ok: false, mensaje }.
+    export async function obtenerIdsTipoEstado(tipo, estado) {
+    // tipos: si la coleccion esta vacia carga sonido, iluminacion e infraestructura
+    const tipos = await cargarTiposIniciales();
+    if (!tipos.ok) return tipos;
+    let id_tipoeq = buscarIdPorNombre(tipos.datos, "id_tipoeq", "nombre_tipoeq", tipo);
+    if (!id_tipoeq) {
+        const nuevoTipo = await crearTipoEquipo({ nombre_tipoeq: tipo });
+        if (!nuevoTipo.ok) return nuevoTipo;
+        id_tipoeq = nuevoTipo.dato.id_tipoeq;
+    }
+
+    // estados: si el estado elegido todavia no existe en la base, se crea
+    const estados = await obtenerEstadosEquipo();
+    if (!estados.ok) return estados;
+    let id_estadoeq = buscarIdPorNombre(estados.datos, "id_estadoeq", "nombre_estadoeq", estado);
+    if (!id_estadoeq) {
+        const nuevoEstado = await crearEstadoEquipo({ nombre_estadoeq: estado });
+        if (!nuevoEstado.ok) return nuevoEstado;
+        id_estadoeq = nuevoEstado.dato.id_estadoeq;
+    }
+
+    return { ok: true, id_tipoeq, id_estadoeq };
+    }
+
     // Colores del formulario (los de Figma, ver EquipoVisual)
     export const COLORS = {
     ...COLORES_EQUIPO,
@@ -304,36 +331,18 @@ import React, { useState } from "react";
 
     // Se ejecuta al tocar "Agregar", pero SOLO si todos los campos son válidos.
     // "datos" ya viene limpio (la cantidad llega como número).
-    // guardado en firestore (S5-07): el formulario tiene el nombre del tipo y del estado,
-    // pero en la base se guardan sus id, asi que primero se buscan (o se crean si no existen)
+    // guardado en firestore (S5-07): primero se buscan (o crean) los id del tipo y del estado
     const onSubmit = async (datos) => {
         if (guardando) return;
         setGuardando(true);
         try {
-        // tipos: si la coleccion esta vacia carga sonido, iluminacion e infraestructura
-        const tipos = await cargarTiposIniciales();
-        if (!tipos.ok) return mostrarNotificacion(tipos.mensaje, "error");
-        let id_tipoeq = buscarIdPorNombre(tipos.datos, "id_tipoeq", "nombre_tipoeq", datos.tipo);
-        if (!id_tipoeq) {
-            const nuevoTipo = await crearTipoEquipo({ nombre_tipoeq: datos.tipo });
-            if (!nuevoTipo.ok) return mostrarNotificacion(nuevoTipo.mensaje, "error");
-            id_tipoeq = nuevoTipo.dato.id_tipoeq;
-        }
-
-        // estados: si el estado elegido todavia no existe en la base, se crea
-        const estados = await obtenerEstadosEquipo();
-        if (!estados.ok) return mostrarNotificacion(estados.mensaje, "error");
-        let id_estadoeq = buscarIdPorNombre(estados.datos, "id_estadoeq", "nombre_estadoeq", datos.estado);
-        if (!id_estadoeq) {
-            const nuevoEstado = await crearEstadoEquipo({ nombre_estadoeq: datos.estado });
-            if (!nuevoEstado.ok) return mostrarNotificacion(nuevoEstado.mensaje, "error");
-            id_estadoeq = nuevoEstado.dato.id_estadoeq;
-        }
+        const ids = await obtenerIdsTipoEstado(datos.tipo, datos.estado);
+        if (!ids.ok) return mostrarNotificacion(ids.mensaje, "error");
 
         // guarda el equipo (registrarEquipo tambien revisa que no este duplicado)
         const resultado = await registrarEquipo({
-            id_tipoeq,
-            id_estadoeq,
+            id_tipoeq: ids.id_tipoeq,
+            id_estadoeq: ids.id_estadoeq,
             nombre_equipo: datos.nombre.trim(),
             cantidad_equipo: Number(datos.cantidad),
             descripcion_equipo: datos.descripcion ?? "",
