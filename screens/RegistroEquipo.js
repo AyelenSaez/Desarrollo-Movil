@@ -1,3 +1,8 @@
+// Pantalla para registrar un equipo nuevo (fiel a Figma: "Agregar equipos").
+// Además exporta Campo, Selector, FormularioEquipo, COLORS, ESTADOS y styles,
+// que reutiliza la pantalla ModificarEquipo.
+
+// React y useState: guardar valores de la pantalla (guardando, lista abierta).
 import React, { useState } from "react";
 
     // componentes de React Native que use para armar la pantalla
@@ -6,14 +11,16 @@ import React, { useState } from "react";
     Text,                  // texto
     TextInput,             // campo donde se escribe
     TouchableOpacity,      // botón que se puede tocar
-    Modal,                 // lista de opciones, osea la ventana que aparece encima 
+    Modal,                 // lista de opciones, osea la ventana que aparece encima
     FlatList,              // lista de opciones
     ScrollView,            // pantalla con scroll
     StyleSheet,            // estilos
     KeyboardAvoidingView,  // evita que el teclado tape los campos
     Platform,              // para saber si es iOS o Android
-    Image,                 // para mostrar la foto de arriba
     } from "react-native";
+
+    // margenes seguros (notch, barra de estado)
+    import { useSafeAreaInsets } from "react-native-safe-area-context";
 
     // iconos
     import { Ionicons } from "@expo/vector-icons";
@@ -21,7 +28,11 @@ import React, { useState } from "react";
     // mismo componente de error que usan login y registro
     import MensajeError from "../components/MensajeError";
 
-    
+    // colores de las pantallas de equipos (medidos de Figma)
+    import { COLORES_EQUIPO } from "../components/EquipoVisual";
+    // fuente Work Sans
+    import { FUENTES } from "../src/theme/fuentes";
+
     // react-hook-form: maneja los valores del formulario y sus errores
     // (Controller conecta cada campo con el formulario)
     import { useForm, Controller } from "react-hook-form";
@@ -29,7 +40,7 @@ import React, { useState } from "react";
     // Conecta react-hook-form con zod para que valide con nuestro esquema
     import { zodResolver } from "@hookform/resolvers/zod";
 
-    // Esquema de validación del equipo (S4-07): nombre, tipo, cantidad y estado
+    // Esquema de validación del equipo (S4-07): nombre, tipo, cantidad, estado y descripción
     import { equipoFormSchema } from "../src/validations/equipoFormSchema";
     // Lista fija de tipos (Sonido, Iluminación, Infraestructura)
     import { LISTA_TIPOS_EQUIPO } from "../src/utils/tiposEquipos";
@@ -37,11 +48,11 @@ import React, { useState } from "react";
     import { useNotificacion } from "../components/Notificacion";
     // funciones de firestore para equipos, tipos y estados
     import {
-    registrarEquipo,
-    cargarTiposIniciales,
-    crearTipoEquipo,
-    obtenerEstadosEquipo,
-    crearEstadoEquipo,
+    registrarEquipo,       // guarda el equipo (verifica que no esté duplicado)
+    cargarTiposIniciales,  // trae los tipos (y los crea si la colección está vacía)
+    crearTipoEquipo,       // crea un tipo si todavía no existe
+    obtenerEstadosEquipo,  // trae los estados guardados
+    crearEstadoEquipo,     // crea un estado si todavía no existe
     } from "../src/services/equipoService";
 
     // busca en una lista el id del elemento que tiene ese nombre (sin importar mayusculas ni espacios)
@@ -53,15 +64,11 @@ import React, { useState } from "react";
     return encontrado ? encontrado[campoId] : undefined;
     };
 
-    // Colores tomados de SignUp/Login para que todas las pantallas se vean igual
+    // Colores del formulario (los de Figma, ver EquipoVisual)
     export const COLORS = {
-    azul: "#0b2f5b",
-    verde: "#4e7246",
-    borde: "#C9CED6",
+    ...COLORES_EQUIPO,
     placeholder: "#9AA1AB",
-    icono: "#6B7280",
     error: "#e05252",
-    blanco: "#FFFFFF",
     };
 
     // Estados que aparecen en Figma para un equipo
@@ -82,7 +89,7 @@ import React, { useState } from "react";
             <TextInput
             style={styles.input}
             placeholderTextColor={COLORS.placeholder}
-            {...inputProps} 
+            {...inputProps}
             />
         </View>
 
@@ -118,8 +125,8 @@ import React, { useState } from "react";
         {/* flechita desplegable */}
             <Ionicons
             name="chevron-down"
-            size={20}
-            color={error ? COLORS.error : COLORS.icono}
+            size={22}
+            color={error ? COLORS.error : COLORS.azul}
             />
         </TouchableOpacity>
 
@@ -167,10 +174,102 @@ import React, { useState } from "react";
     );
     }
 
+    // ---------------------------------------------------------------
+    // FORMULARIO: los 5 campos del equipo (lo usan Agregar y Editar).
+    // control y mensajeError vienen del useForm de cada pantalla.
+    // ---------------------------------------------------------------
+    export function FormularioEquipo({ control, mensajeError }) {
+    return (
+        <>
+        {/* Nombre: texto libre, obligatorio */}
+        <Controller
+            control={control}
+            name="nombre"
+            render={({ field: { value, onChange, onBlur } }) => (
+            <Campo
+                label="Nombre equipo"
+                placeholder="Ej: Consola 16 canales"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={mensajeError("nombre")} // borde rojo + mensaje si hay error
+            />
+            )}
+        />
+
+        {/* Tipo: desplegable con la lista fija de tipos */}
+        <Controller
+            control={control}
+            name="tipo"
+            render={({ field: { value, onChange } }) => (
+            <Selector
+                label="Tipo de equipo"
+                valor={value}
+                opciones={LISTA_TIPOS_EQUIPO}
+                placeholder="Seleccioná un tipo"
+                onChange={onChange}
+                error={mensajeError("tipo")}
+            />
+            )}
+        />
+
+        {/* Estado: desplegable con los estados */}
+        <Controller
+            control={control}
+            name="estado"
+            render={({ field: { value, onChange } }) => (
+            <Selector
+                label="Estado"
+                valor={value}
+                opciones={ESTADOS}
+                placeholder="Seleccioná un estado"
+                onChange={onChange}
+                error={mensajeError("estado")}
+            />
+            )}
+        />
+
+        {/* Cantidad: solo números enteros, 0 o más */}
+        <Controller
+            control={control}
+            name="cantidad"
+            render={({ field: { value, onChange, onBlur } }) => (
+            <Campo
+                label="Cantidad"
+                placeholder="Ej: 4"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                keyboardType="numeric" // teclado numérico
+                error={mensajeError("cantidad")}
+            />
+            )}
+        />
+
+        {/* Descripción: texto libre, opcional */}
+        <Controller
+            control={control}
+            name="descripcion"
+            render={({ field: { value, onChange, onBlur } }) => (
+            <Campo
+                label="Descripción"
+                placeholder="Ej: Original"
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                error={mensajeError("descripcion")}
+            />
+            )}
+        />
+        </>
+    );
+    }
+
     // Formulario para registrar un equipo
 
     export default function RegistroEquipo({ navigation }) {
-    // useForm guarda lo que el usuario escribe o elige en los 4 campos.
+    const insets = useSafeAreaInsets();
+    // useForm guarda lo que el usuario escribe o elige en los campos.
     // resolver: usa el esquema de zod para validar al tocar "Agregar".
     // defaultValues: cómo arranca cada campo (vacío).
     const {
@@ -180,18 +279,19 @@ import React, { useState } from "react";
         formState: { errors },    // errores de cada campo (si los hay)
     } = useForm({
         resolver: zodResolver(equipoFormSchema),
-        defaultValues: { nombre: "", tipo: "", cantidad: "", estado: "" },
+        defaultValues: { nombre: "", tipo: "", cantidad: "", estado: "", descripcion: "" },
     });
 
+    // función para mostrar avisos de éxito o error
     const { mostrarNotificacion } = useNotificacion();
     // true mientras se guarda, para no guardar dos veces si tocan el boton de nuevo
     const [guardando, setGuardando] = useState(false);
 
-    // Vuelve a la pantalla anterior 
+    // Vuelve a la pantalla anterior
     const volver = () => {
         if (navigation.canGoBack()) navigation.goBack();
     };
-    
+
     // Devuelve el mensaje de error de un campo, o undefined si no tiene error.
     // S5-05: si el campo está vacío muestra "Este campo es obligatorio";
     // si tiene algo mal (ej. cantidad negativa) muestra el mensaje del esquema.
@@ -236,6 +336,7 @@ import React, { useState } from "react";
             id_estadoeq,
             nombre_equipo: datos.nombre.trim(),
             cantidad_equipo: Number(datos.cantidad),
+            descripcion_equipo: datos.descripcion ?? "",
         });
 
         if (resultado.ok) {
@@ -250,168 +351,79 @@ import React, { useState } from "react";
     };
 
     return (
-        // para que el teclado tape los campos en ios
+        // para que el teclado no tape los campos en ios
         <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
         {/* scroll por si la pantalla es chica */}
         <ScrollView
-            contentContainerStyle={styles.contenido}
+            contentContainerStyle={[styles.contenido, { paddingTop: insets.top + 16 }]}
             keyboardShouldPersistTaps="handled"
         >
-        {/* imagen de arriba */}
-            <Image
-            source={require("../assets/equipo.jpeg")}
-            style={styles.imagen}
-            />
-
-        {/* formulario */}
-            <View style={styles.formulario}>
-
-            <Text style={styles.titulo}>Agregar nuevo equipo</Text>
-
-                       {/* Nombre: texto libre, obligatorio */}
-            <Controller
-                control={control}
-                name="nombre"
-                render={({ field: { value, onChange, onBlur } }) => (
-                <Campo
-                    label="Nombre equipo"
-                    placeholder="Ej: Consola 16 canales"
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    error={mensajeError("nombre")}// borde rojo + mensaje si hay error
-                />
-                )}
-            />
-
-            {/* Tipo: desplegable con la lista fija de tipos */}
-            <Controller
-                control={control}
-                name="tipo"
-                render={({ field: { value, onChange } }) => (
-                <Selector
-                    label="Tipo de equipo"
-                    valor={value}
-                    opciones={LISTA_TIPOS_EQUIPO}
-                    placeholder="Seleccioná un tipo"
-                    onChange={onChange}
-                    error={mensajeError("tipo")}
-                />
-                )}
-            />
-
-            {/* Cantidad: solo números enteros, 0 o más */}
-            <Controller
-                control={control}
-                name="cantidad"
-                render={({ field: { value, onChange, onBlur } }) => (
-                <Campo
-                    label="Cantidad"
-                    placeholder="Ej: 4"
-                    value={value}
-                    onChangeText={onChange}
-                    onBlur={onBlur}
-                    keyboardType="numeric" // teclado numérico
-                    error={mensajeError("cantidad")}
-                />
-                )}
-            />
-
-            {/* Estado: desplegable con los estados */}
-            <Controller
-                control={control}
-                name="estado"
-                render={({ field: { value, onChange } }) => (
-                <Selector
-                    label="Estado"
-                    valor={value}
-                    opciones={ESTADOS}
-                    placeholder="Seleccioná un estado"
-                    onChange={onChange}
-                    error={mensajeError("estado")}
-                />
-                )}
-            />
-
-            {/* Botón principal: Agregar */}
+            {/* Flecha para volver hacia atras */}
             <TouchableOpacity
-                style={[styles.boton, guardando && { opacity: 0.6 }]}
-                onPress={handleSubmit(onSubmit)}
-                disabled={guardando}
-            >
-                <Text style={styles.botonTexto}>{guardando ? "Guardando..." : "Agregar"}</Text>
-            </TouchableOpacity>
-
-         {/* Cancelar */}
-            <TouchableOpacity onPress={volver}>
-                <Text style={styles.cancelar}>Cancelar</Text>
-            </TouchableOpacity>
-            </View>
-        </ScrollView>
-
-        {/* Flecha para volver hacia atras, encima de la imagen */}
-        <TouchableOpacity
             style={styles.flecha}
             onPress={volver}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-            <Ionicons name="arrow-back" size={22} color={COLORS.azul} />
-        </TouchableOpacity>
+            accessibilityLabel="Volver"
+            >
+            <Ionicons name="arrow-back" size={26} color={COLORS.azul} />
+            </TouchableOpacity>
+
+            <Text style={[styles.titulo, styles.tituloAngosto]}>Agregar nuevo equipo</Text>
+
+            <FormularioEquipo control={control} mensajeError={mensajeError} />
+
+            {/* Botón principal: Agregar */}
+            <TouchableOpacity
+            style={[styles.boton, guardando && { opacity: 0.6 }]}
+            onPress={handleSubmit(onSubmit)}
+            disabled={guardando}
+            >
+            <Text style={styles.botonTexto}>{guardando ? "Guardando..." : "Agregar"}</Text>
+            </TouchableOpacity>
+
+            {/* Cancelar */}
+            <TouchableOpacity onPress={volver}>
+            <Text style={styles.cancelar}>Cancelar</Text>
+            </TouchableOpacity>
+        </ScrollView>
         </KeyboardAvoidingView>
     );
     }
 
     // ---------------------------------------------------------------
-    // ESTILOS (copiados del estilo de SignUp)
+    // ESTILOS (medidas de Figma, pantalla de 430 de ancho)
     // ---------------------------------------------------------------
     export const styles = StyleSheet.create({
-    // Ocupa toda la pantalla con fondo blanco
-    flex: { flex: 1, backgroundColor: COLORS.blanco },
+    // Ocupa toda la pantalla con el fondo de Figma
+    flex: { flex: 1, backgroundColor: COLORS.fondo },
 
-    // Flecha para volver hacia atras 
-    flecha: {
-        position: "absolute",
-        top: 64,                          
-        left: 20,
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: COLORS.blanco,
-        alignItems: "center",
-        justifyContent: "center",
-        elevation: 4,                     // sombra en android 
-        shadowColor: "#000",              // sombra en iOS
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 2 },
-        zIndex: 10,
-    },
+    // márgenes de los costados y espacio al final
+    contenido: { paddingHorizontal: 20, paddingBottom: 40 },
 
-    // espacio al final de la pantalla
-    contenido: { paddingBottom: 40 },
-
-    // imagen 
-    imagen: { width: "100%", height: 280, resizeMode: "cover" },
-
-    // separacion del título de la foto
-    formulario: { paddingHorizontal: 20, paddingTop: 36 },
+    // Flecha para volver hacia atras (arriba a la izquierda, sin fondo)
+    flecha: { alignSelf: "flex-start", marginBottom: 8 },
 
     // titulo grande en azul
     titulo: {
-        fontSize: 22,
-        fontWeight: "700",
+        fontFamily: FUENTES.bold,
+        fontSize: 30,
+        lineHeight: 45,
+        letterSpacing: 0.9,
         color: COLORS.azul,
-        marginBottom: 24,
+        marginBottom: 36,
     },
 
-    // espacio entre un campo y el siguiente
-    grupo: { marginBottom: 14 },
+    // en Figma "Agregar nuevo equipo" ocupa dos renglones
+    tituloAngosto: { maxWidth: 260 },
 
-    // titulo pequeño arriba de cada campo
-    label: { fontSize: 14, color: COLORS.azul, marginBottom: 6 },
+    // espacio entre un campo y el siguiente
+    grupo: { marginBottom: 26 },
+
+    // titulo arriba de cada campo
+    label: { fontFamily: FUENTES.regular, fontSize: 20, color: COLORS.azulLabel, marginBottom: 12 },
 
     // caja de cada campo osea el borde gris redondeado
     inputWrap: {
@@ -420,24 +432,26 @@ import React, { useState } from "react";
         justifyContent: "space-between",
         borderWidth: 1,
         borderColor: COLORS.borde,
-        borderRadius: 8,
-        paddingHorizontal: 12,
-        height: 48,
+        borderRadius: 10,
+        paddingHorizontal: 8,
+        paddingRight: 16,
+        height: 60,
+        backgroundColor: COLORS.blanco,
     },
 
     // borde rojo cuando hay un error
     inputWrapError: { borderColor: COLORS.error },
 
     // texto que se escribe dentro del campo
-    input: { flex: 1, fontSize: 15, color: "#111827" },
+    input: { flex: 1, fontFamily: FUENTES.regular, fontSize: 20, color: COLORS.texto },
 
     // texto del valor elegido en un selector
-    valor: { fontSize: 15, color: "#111827" },
+    valor: { fontFamily: FUENTES.regular, fontSize: 20, color: COLORS.texto },
 
     // placeholder cuando todavía no se eligió nada
-    textoPlaceholder: { fontSize: 15, color: COLORS.placeholder },
+    textoPlaceholder: { fontFamily: FUENTES.regular, fontSize: 20, color: COLORS.placeholder },
 
-    // fspacio para el mensaje de error 
+    // espacio para el mensaje de error
     errorWrap: { marginTop: 20 },
 
     // fondo oscuro medio transparente detras de la lista de opciones
@@ -454,26 +468,28 @@ import React, { useState } from "react";
     // Cada opción de la lista
     opcion: { paddingVertical: 14, paddingHorizontal: 12 },
 
-    // Boton Agregar
+    // Boton principal (Agregar / Guardar cambios / Editar equipo)
     boton: {
-        backgroundColor: COLORS.verde,
-        borderRadius: 8,
-        height: 48,
-        width: "70%",
+        backgroundColor: COLORS.azul,
+        borderRadius: 10,
+        height: 60,
+        width: "100%",
+        maxWidth: 350,
         alignSelf: "center",
         alignItems: "center",
         justifyContent: "center",
-        marginTop: 8,
+        marginTop: 50,
     },
 
     // texto del botoon
-    botonTexto: { color: COLORS.blanco, fontSize: 16, fontWeight: "700" },
+    botonTexto: { fontFamily: FUENTES.bold, color: COLORS.blanco, fontSize: 24, letterSpacing: 0.72 },
 
     // texto Cancelar
     cancelar: {
+        fontFamily: FUENTES.regular,
         textAlign: "center",
-        color: COLORS.azul,
-        fontSize: 15,
-        marginTop: 16,
+        color: COLORS.azulLabel,
+        fontSize: 24,
+        marginTop: 27,
     },
     });

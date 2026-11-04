@@ -1,5 +1,12 @@
+// Servicio de autenticación: funciones que hablan con Firebase Auth
+// para que las pantallas no tengan que hacerlo directamente.
+
+// createUserWithEmailAndPassword: crea una cuenta nueva con correo y contraseña.
+// updateProfile: actualiza datos del perfil del usuario (acá, el nombre).
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+// auth: instancia de Firebase Auth configurada en firebaseConfig.
 import { auth } from '../config/firebaseConfig';
+// traducirErrorFirebase: convierte el código de error de Firebase en un mensaje en español.
 import { traducirErrorFirebase } from '../utils/firebaseErrors';
 
 /**
@@ -15,6 +22,7 @@ import { traducirErrorFirebase } from '../utils/firebaseErrors';
  */
 export async function registrarUsuario({ nombre, correo, contrasena }) {
   let credencial;
+  // Paso 1: crear la cuenta. Si falla, se devuelve el error traducido.
   try {
     credencial = await createUserWithEmailAndPassword(auth, correo.trim(), contrasena);
   } catch (error) {
@@ -23,6 +31,7 @@ export async function registrarUsuario({ nombre, correo, contrasena }) {
     return { ok: false, codigo, mensaje: traducirErrorFirebase(codigo) };
   }
 
+  // Paso 2: guardar el nombre en el perfil.
   // La cuenta ya existe en este punto: si falla guardar el nombre,
   // el registro igual se considera exitoso.
   try {

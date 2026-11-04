@@ -1,8 +1,20 @@
+// Configuración e inicialización de Firebase (autenticación y base de datos).
+// El resto de la app importa `auth` y `db` desde acá.
+
+// initializeApp: crea la conexión de la app con el proyecto de Firebase.
 import { initializeApp } from 'firebase/app';
+// getAuth: obtiene la instancia de Auth si ya existe.
+// initializeAuth: crea la instancia de Auth con opciones personalizadas.
+// getReactNativePersistence: hace que la sesión se guarde en el teléfono.
 import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+// getFirestore: obtiene la base de datos si ya existe.
+// initializeFirestore: crea la base de datos con opciones personalizadas.
 import { getFirestore, initializeFirestore } from 'firebase/firestore';
+// AsyncStorage: almacenamiento local del teléfono; se usa para recordar la sesión
+// aunque se cierre la app.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Datos del proyecto de Firebase, leídos de las variables del archivo .env.
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -12,12 +24,15 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
+// true solo si todas las variables tienen valor (si falta alguna, la app muestra un aviso).
 export const isFirebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 
 let auth = null;
 let db = null;
 if (isFirebaseConfigured) {
   const app = initializeApp(firebaseConfig);
+  // Se inicializa Auth guardando la sesión en AsyncStorage.
+  // Si ya estaba inicializado (recarga en caliente), se reutiliza el existente.
   try {
     auth = initializeAuth(app, { persistence: getReactNativePersistence(AsyncStorage) });
   } catch (error) {
@@ -33,4 +48,5 @@ if (isFirebaseConfigured) {
   }
 }
 
+// auth: para iniciar/cerrar sesión y registrar usuarios. db: para leer/escribir en Firestore.
 export { auth, db };

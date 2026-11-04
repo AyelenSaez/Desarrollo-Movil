@@ -1,22 +1,32 @@
+// Pantalla de inicio (Home): resumen del día, próximas reservas, estado de equipos
+// y menú lateral (hamburguesa) para navegar y cerrar sesión.
+
+// React y hooks: useRef (guarda las animaciones sin re-dibujar) y useState (menú abierto/cerrado).
 import React, { useRef, useState } from 'react';
+// Componentes de React Native:
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-  ScrollView,
-  Modal,
-  Animated,
-  Dimensions,
-  Pressable,
-  StatusBar,
+  View,             // contenedor
+  Text,             // texto
+  TouchableOpacity, // botón que se puede tocar
+  StyleSheet,       // crear estilos
+  Image,            // mostrar imágenes (el logo)
+  ScrollView,       // contenido con scroll
+  Modal,            // capa que se muestra encima (el menú lateral)
+  Animated,         // animaciones (deslizar y oscurecer al abrir el menú)
+  Dimensions,       // medidas de la pantalla (para calcular el ancho del menú)
+  Pressable,        // zona tocable (el fondo oscuro que cierra el menú)
+  StatusBar,        // configura la barra de estado del teléfono (hora, batería)
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // margenes seguros (notch, barra de abajo)
 import { Ionicons } from '@expo/vector-icons'; // iconos que vienen con expo
+// signOut: cierra la sesión del usuario en Firebase.
 import { signOut } from 'firebase/auth';
+// auth: instancia de Firebase Auth (para saber quién está logueado y cerrar sesión).
 import { auth } from '../src/config/firebaseConfig';
+// useNotificacion: muestra el aviso de "Sesión cerrada correctamente".
 import { useNotificacion } from '../components/Notificacion';
+// FUENTES: fuente Work Sans de toda la app (reemplaza a fontWeight)
+import { FUENTES } from '../src/theme/fuentes';
 
 // paleta de colores de la app
 const C = {
@@ -41,17 +51,19 @@ const RESUMEN = {
   usuarios: { total: 10, perfiles: 2 },
 };
 
+// reservas de ejemplo para la seccion "Próximas reservas"
 const PROXIMAS_RESERVAS = [
   { id: '1', cliente: 'Cliente 1', evento: 'Cumpleaños', fecha: '03 oct.', hora: '22:00', estado: 'Confirmada' },
 ];
 
+// datos de ejemplo para las barras de "Estado de equipos"
 const ESTADO_EQUIPOS = [
   { label: 'Disponibles', valor: 27, total: 34, color: C.green },
   { label: 'En uso', valor: 5, total: 34, color: C.navy },
   { label: 'En reparación', valor: 2, total: 34, color: C.red },
 ];
 
-// opciones del menu hamburguesa 
+// opciones del menu hamburguesa
 const MENU = [
   { key: 'Inicio', label: 'Inicio', icon: 'home-outline', route: null },
   { key: 'Equipos', label: 'Equipos', icon: 'hardware-chip-outline', route: 'ListadoEquipos' },
@@ -60,11 +72,14 @@ const MENU = [
 // ancho del menu lateral:
 const DRAWER_WIDTH = Math.min(Dimensions.get('window').width * 0.78, 320);
 
+// pantalla principal. "navigation" sirve para ir a otras pantallas (ej. ListadoEquipos)
 export default function Home({ navigation }) {
-  const insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets(); // margenes seguros de arriba y abajo
   const { mostrarNotificacion } = useNotificacion();
-  const [menuAbierto, setMenuAbierto] = useState(false);
+  const [menuAbierto, setMenuAbierto] = useState(false); // true = menu lateral visible
+  // posicion horizontal del menu: arranca escondido a la izquierda (-DRAWER_WIDTH)
   const slide = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
+  // opacidad del fondo oscuro: 0 = transparente, 1 = visible
   const fade = useRef(new Animated.Value(0)).current;
 
   // datos del usuario logueado para el avatar y el menu
@@ -99,6 +114,8 @@ export default function Home({ navigation }) {
     });
   };
 
+  // cierra la sesion en firebase y muestra un aviso.
+  // Navigation detecta que ya no hay usuario y vuelve al Login solo.
   const handleLogOut = async () => {
     try {
       await signOut(auth);
@@ -110,6 +127,7 @@ export default function Home({ navigation }) {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      {/* barra de estado con iconos oscuros sobre fondo blanco */}
       <StatusBar barStyle="dark-content" backgroundColor={C.card} />
 
       {/* boton hamburguesa y logo */}
@@ -158,7 +176,7 @@ export default function Home({ navigation }) {
           />
         </View>
 
-        {/* proximas reservas */}
+        {/* proximas reservas: si no hay, muestra un texto; si hay, una fila por reserva */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Próximas reservas</Text>
@@ -212,6 +230,7 @@ export default function Home({ navigation }) {
                   {e.valor}/{e.total}
                 </Text>
               </View>
+              {/* barra gris de fondo y, encima, la parte de color con ancho proporcional (valor/total) */}
               <View style={styles.track}>
                 <View
                   style={[
@@ -227,6 +246,7 @@ export default function Home({ navigation }) {
 
       {/* menu hamburguesa */}
       <Modal visible={menuAbierto} transparent animationType="none" onRequestClose={cerrarMenu}>
+        {/* fondo oscuro: tocarlo cierra el menu */}
         <Animated.View style={[styles.overlay, { opacity: fade }]}>
           <Pressable style={StyleSheet.absoluteFill} onPress={cerrarMenu} />
         </Animated.View>
@@ -238,6 +258,7 @@ export default function Home({ navigation }) {
             { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16, transform: [{ translateX: slide }] },
           ]}
         >
+          {/* avatar, nombre y email del usuario + boton X para cerrar */}
           <View style={styles.drawerTop}>
             <View style={styles.drawerUser}>
               <View style={styles.avatar}>
@@ -257,9 +278,10 @@ export default function Home({ navigation }) {
             </TouchableOpacity>
           </View>
 
+          {/* opciones del menu: "Inicio" queda resaltada porque es la pantalla actual */}
           <View style={{ flex: 1, marginTop: 24 }}>
             {MENU.map((item) => {
-              const activo = item.key === 'Inicio'; 
+              const activo = item.key === 'Inicio';
               return (
                 <TouchableOpacity
                   key={item.key}
@@ -273,6 +295,7 @@ export default function Home({ navigation }) {
             })}
           </View>
 
+          {/* cerrar sesion: primero cierra el menu y al terminar la animacion cierra la sesion */}
           <TouchableOpacity style={styles.logout} onPress={() => cerrarMenu(handleLogOut)}>
             <Ionicons name="log-out-outline" size={20} color="#fff" style={{ marginRight: 14 }} />
             <Text style={styles.menuText}>Cerrar sesión</Text>
@@ -283,7 +306,9 @@ export default function Home({ navigation }) {
   );
 }
 
-// tarjeta de resumen 
+// tarjeta de resumen
+// muestra un titulo con icono, un numero grande y un detalle abajo.
+// si recibe onPress se puede tocar (TouchableOpacity); si no, es una caja fija (View)
 function StatCard({ titulo, valor, detalle, detalleColor, icon, onPress }) {
   const Wrapper = onPress ? TouchableOpacity : View;
   return (
@@ -303,6 +328,7 @@ function StatCard({ titulo, valor, detalle, detalleColor, icon, onPress }) {
 }
 
 // devuelve las iniciales de un nombre
+// ej: "Juan Perez" -> "JP" (toma como maximo las dos primeras palabras)
 function iniciales(nombre = '') {
   return nombre
     .split(' ')
@@ -312,6 +338,7 @@ function iniciales(nombre = '') {
     .join('');
 }
 
+// estilos de la pantalla de inicio
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.bg },
 
@@ -331,7 +358,7 @@ const styles = StyleSheet.create({
   headerLogo: {
     height: 36,
     width: undefined,
-    aspectRatio: 2170 / 725, 
+    aspectRatio: 2170 / 725,
     resizeMode: 'contain',
   },
   avatar: {
@@ -343,12 +370,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarReserva: { width: 44, height: 44, borderRadius: 22, marginRight: 12 },
-  avatarText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  avatarText: { fontFamily: FUENTES.bold, color: '#fff', fontSize: 16 },
 
   // contenido
   content: { padding: 16 },
-  saludo: { fontSize: 22, fontWeight: '800', color: C.navy, letterSpacing: 1 },
-  subSaludo: { fontSize: 14, color: C.muted, marginTop: 4, marginBottom: 16 },
+  saludo: { fontFamily: FUENTES.extrabold, fontSize: 22, color: C.navy, letterSpacing: 1 },
+  subSaludo: { fontFamily: FUENTES.regular, fontSize: 14, color: C.muted, marginTop: 4, marginBottom: 16 },
 
   // tarjetas de resumen
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
@@ -367,9 +394,9 @@ const styles = StyleSheet.create({
     elevation: 2, // sombra en android
   },
   cardTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardTitle: { fontSize: 13, color: C.muted, flex: 1, marginRight: 6 },
-  cardValue: { fontSize: 26, fontWeight: '800', color: C.navy, marginVertical: 6 },
-  cardDetail: { fontSize: 11, color: C.muted },
+  cardTitle: { fontFamily: FUENTES.regular, fontSize: 13, color: C.muted, flex: 1, marginRight: 6 },
+  cardValue: { fontFamily: FUENTES.extrabold, fontSize: 26, color: C.navy, marginVertical: 6 },
+  cardDetail: { fontFamily: FUENTES.regular, fontSize: 11, color: C.muted },
 
   // secciones
   section: {
@@ -387,24 +414,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: C.navy },
-  link: { fontSize: 13, fontWeight: '700', color: C.green },
-  vacio: { color: C.muted, fontSize: 14 },
+  sectionTitle: { fontFamily: FUENTES.extrabold, fontSize: 17, color: C.navy },
+  link: { fontFamily: FUENTES.bold, fontSize: 13, color: C.green },
+  vacio: { fontFamily: FUENTES.regular, color: C.muted, fontSize: 14 },
 
   // reservas
   reserva: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
   reservaDivider: { borderBottomWidth: 1, borderBottomColor: C.border },
-  reservaNombre: { fontSize: 15, color: C.text, fontWeight: '600' },
-  reservaEvento: { fontSize: 12, color: C.muted, marginTop: 2 },
-  reservaFecha: { fontSize: 13, color: C.text, marginBottom: 4 },
+  reservaNombre: { fontFamily: FUENTES.semibold, fontSize: 15, color: C.text },
+  reservaEvento: { fontFamily: FUENTES.regular, fontSize: 12, color: C.muted, marginTop: 2 },
+  reservaFecha: { fontFamily: FUENTES.regular, fontSize: 13, color: C.text, marginBottom: 4 },
   badge: { backgroundColor: C.greenSoft, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
   badgePendiente: { backgroundColor: '#fdf0d5' },
-  badgeText: { fontSize: 11, color: C.green, fontWeight: '600' },
+  badgeText: { fontFamily: FUENTES.semibold, fontSize: 11, color: C.green },
 
   // barras de estado
   barRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  barLabel: { fontSize: 14, color: C.text },
-  barValue: { fontSize: 13, color: C.muted },
+  barLabel: { fontFamily: FUENTES.regular, fontSize: 14, color: C.text },
+  barValue: { fontFamily: FUENTES.regular, fontSize: 13, color: C.muted },
   track: { height: 10, borderRadius: 5, backgroundColor: C.track, overflow: 'hidden' },
   fill: { height: '100%', borderRadius: 5 },
 
