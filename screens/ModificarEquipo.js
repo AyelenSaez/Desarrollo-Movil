@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 
 // Componentes de React Native que usamos para armar la pantalla
 import {
+    View,                  // caja contenedora
     Text,                  // texto
     TouchableOpacity,      // botón que se puede tocar
     ScrollView,            // pantalla con scroll
@@ -12,12 +13,6 @@ import {
     Platform,              // para saber si es iOS o Android
     ActivityIndicator,     // circulito de carga
 } from "react-native";
-
-// margenes seguros (notch, barra de estado)
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-// Íconos, los mismos que usan las demás pantallas
-import { Ionicons } from "@expo/vector-icons";
 
 // Mismo componente de error que usan las demás pantallas
 import MensajeError from "../components/MensajeError";
@@ -30,8 +25,8 @@ import { equipoFormSchema } from "../src/validations/equipoFormSchema";
 // Trae el equipo por ID con los nombres de su tipo y estado
 import { obtenerDetalleEquipo } from "../src/services/equipoService";
 
-// Mismos campos, colores y estilos que la pantalla de registro
-import { COLORS, FormularioEquipo, styles } from "./RegistroEquipo";
+// Mismos campos, colores, foto, flecha y estilos que la pantalla de registro
+import { COLORS, FormularioEquipo, FotoCabecera, FlechaVolver, styles } from "./RegistroEquipo";
 
 // ---------------------------------------------------------------
 // PANTALLA: formulario para modificar un equipo
@@ -40,7 +35,6 @@ import { COLORS, FormularioEquipo, styles } from "./RegistroEquipo";
 // ---------------------------------------------------------------
 export default function ModificarEquipo({ navigation, route }) {
     const { idEquipo } = route.params;
-    const insets = useSafeAreaInsets();
 
     // Guarda si todavía se están trayendo los datos y si hubo un error
     const [cargando, setCargando] = useState(true);
@@ -121,19 +115,14 @@ export default function ModificarEquipo({ navigation, route }) {
         >
             {/* Scroll por si la pantalla es chica; mantiene los toques con el teclado abierto */}
             <ScrollView
-                contentContainerStyle={[styles.contenido, { paddingTop: insets.top + 16 }]}
+                contentContainerStyle={styles.contenidoConFoto}
                 keyboardShouldPersistTaps="handled"
             >
-                {/* Flecha para volver */}
-                <TouchableOpacity
-                    style={styles.flecha}
-                    onPress={volver}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    accessibilityLabel="Volver"
-                >
-                    <Ionicons name="arrow-back" size={26} color={COLORS.azul} />
-                </TouchableOpacity>
+                {/* Foto fija de arriba (la misma del registro) */}
+                <FotoCabecera />
 
+                {/* Todo el formulario va dentro de esta caja con márgenes */}
+                <View style={styles.formulario}>
                 <Text style={styles.titulo}>Editar equipo</Text>
 
                 {cargando ? (
@@ -157,7 +146,11 @@ export default function ModificarEquipo({ navigation, route }) {
                 <TouchableOpacity onPress={volver}>
                     <Text style={styles.cancelar}>Cancelar</Text>
                 </TouchableOpacity>
+                </View>
             </ScrollView>
+
+            {/* Flecha para volver: va DESPUÉS del scroll para quedar encima de la foto */}
+            <FlechaVolver onPress={volver} />
         </KeyboardAvoidingView>
     );
 }
