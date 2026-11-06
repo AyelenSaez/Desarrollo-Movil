@@ -17,6 +17,7 @@ import React, { useState } from "react";
     StyleSheet,            // estilos
     KeyboardAvoidingView,  // evita que el teclado tape los campos
     Platform,              // para saber si es iOS o Android
+    Image,                 // para mostrar la foto de arriba
     } from "react-native";
 
     // margenes seguros (notch, barra de estado)
@@ -175,6 +176,28 @@ import React, { useState } from "react";
     }
 
     // ---------------------------------------------------------------
+    // FOTO DE ARRIBA y FLECHA FLOTANTE: las usan Agregar y Editar.
+    // La flecha va después del ScrollView para quedar fija encima de la foto.
+    // ---------------------------------------------------------------
+    export function FotoCabecera() {
+    return <Image source={require("../assets/equipo.jpeg")} style={styles.imagen} />;
+    }
+
+    export function FlechaVolver({ onPress }) {
+    const insets = useSafeAreaInsets();
+    return (
+        <TouchableOpacity
+        style={[styles.flechaFlotante, { top: insets.top + 16 }]}
+        onPress={onPress}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        accessibilityLabel="Volver"
+        >
+        <Ionicons name="arrow-back" size={22} color={COLORS.azul} />
+        </TouchableOpacity>
+    );
+    }
+
+    // ---------------------------------------------------------------
     // FORMULARIO: los 5 campos del equipo (lo usan Agregar y Editar).
     // control y mensajeError vienen del useForm de cada pantalla.
     // ---------------------------------------------------------------
@@ -268,7 +291,6 @@ import React, { useState } from "react";
     // Formulario para registrar un equipo
 
     export default function RegistroEquipo({ navigation }) {
-    const insets = useSafeAreaInsets();
     // useForm guarda lo que el usuario escribe o elige en los campos.
     // resolver: usa el esquema de zod para validar al tocar "Agregar".
     // defaultValues: cómo arranca cada campo (vacío).
@@ -358,19 +380,14 @@ import React, { useState } from "react";
         >
         {/* scroll por si la pantalla es chica */}
         <ScrollView
-            contentContainerStyle={[styles.contenido, { paddingTop: insets.top + 16 }]}
+            contentContainerStyle={styles.contenidoConFoto}
             keyboardShouldPersistTaps="handled"
         >
-            {/* Flecha para volver hacia atras */}
-            <TouchableOpacity
-            style={styles.flecha}
-            onPress={volver}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            accessibilityLabel="Volver"
-            >
-            <Ionicons name="arrow-back" size={26} color={COLORS.azul} />
-            </TouchableOpacity>
+            {/* imagen de arriba */}
+            <FotoCabecera />
 
+            {/* formulario */}
+            <View style={styles.formulario}>
             <Text style={[styles.titulo, styles.tituloAngosto]}>Agregar nuevo equipo</Text>
 
             <FormularioEquipo control={control} mensajeError={mensajeError} />
@@ -388,7 +405,11 @@ import React, { useState } from "react";
             <TouchableOpacity onPress={volver}>
             <Text style={styles.cancelar}>Cancelar</Text>
             </TouchableOpacity>
+            </View>
         </ScrollView>
+
+        {/* Flecha para volver hacia atras, encima de la imagen */}
+        <FlechaVolver onPress={volver} />
         </KeyboardAvoidingView>
     );
     }
@@ -405,6 +426,29 @@ import React, { useState } from "react";
 
     // Flecha para volver hacia atras (arriba a la izquierda, sin fondo)
     flecha: { alignSelf: "flex-start", marginBottom: 8 },
+
+    // pantallas con foto: la foto ocupa todo el ancho, el formulario lleva los márgenes
+    contenidoConFoto: { paddingBottom: 40 },
+    imagen: { width: "100%", height: 280, resizeMode: "cover" },
+    formulario: { paddingHorizontal: 20, paddingTop: 36 },
+
+    // flecha en un círculo blanco con sombra, flotando encima de la foto
+    flechaFlotante: {
+        position: "absolute",
+        left: 20,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: COLORS.blanco,
+        alignItems: "center",
+        justifyContent: "center",
+        elevation: 4,                     // sombra en android
+        shadowColor: "#000",              // sombra en iOS
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 2 },
+        zIndex: 10,
+    },
 
     // titulo grande en azul
     titulo: {

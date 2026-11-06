@@ -18,9 +18,10 @@ import { ARCHIVOS_FUENTES } from './src/theme/fuentes';
 
 // App: arma la estructura base de la app y la devuelve para que Expo la dibuje.
 export default function App() {
-  // Hasta que no carga la fuente no se dibuja nada (si no, el texto "salta" de fuente)
-  const [fuentesCargadas] = useFonts(ARCHIVOS_FUENTES);
-  if (!fuentesCargadas) return null;
+  // Hasta que no carga la fuente no se dibuja nada (si no, el texto "salta" de fuente).
+  // Si la fuente falla (errorFuentes), la app arranca igual con la fuente del sistema.
+  const [fuentesCargadas, errorFuentes] = useFonts(ARCHIVOS_FUENTES);
+  if (!fuentesCargadas && !errorFuentes) return null;
 
   return (
     // SafeAreaProvider: da el espacio de la barra de estado a las notificaciones
