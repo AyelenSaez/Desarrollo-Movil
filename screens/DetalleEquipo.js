@@ -105,14 +105,10 @@ export default function DetalleEquipo({ navigation, route }) {
           {/* Dos datos lado a lado */}
           <View style={styles.fila}>
             <Dato label="Incorporado" valor={formatearFecha(equipo.fechaAlta)} style={styles.columna} />
-            {/* Todavía no hay reservas: se completa cuando existan */}
-            <Dato label="Usos este mes" valor="—" style={styles.columna} />
+            <Dato label="Cantidad" valor={String(equipo.cantidad ?? "")} style={styles.columna} />
           </View>
 
           <Dato label="Descripción" valor={equipo.descripcion} />
-
-          {/* Todavía no hay servicios: se completa cuando existan */}
-          <Dato label="Servicios que lo utilizan" valor="—" />
 
           {/* Botón principal: ir a editar este equipo */}
           <TouchableOpacity
