@@ -13,9 +13,8 @@ import { auth, db } from '../config/firebaseConfig';
 import { traducirErrorFirebase } from '../utils/firebaseErrors';
 // perfilSchema: esquema zod del perfil (tarea S6-04, Alarcon Facundo).
 import { perfilSchema } from '../validations/perfilSchema';
-
-// Nombre de la colección en Firestore (tiene que coincidir con la consola).
-const COLECCION_USUARIOS = 'usuarios';
+// COLECCION_USUARIOS: nombre de la colección de usuarios en Firestore (modelo Usuario, S6-03).
+import { COLECCION_USUARIOS } from '../models/Usuario';
 
 /**
  * Modifica el nombre y el teléfono del usuario con sesión iniciada.
