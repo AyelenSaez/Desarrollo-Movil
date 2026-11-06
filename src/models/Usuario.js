@@ -8,18 +8,21 @@ export const COLECCION_USUARIOS = 'usuarios';
 
 /**
  * Tabla USUARIOS
+ * Los nombres de los campos coinciden con el documento creado en la consola de Firestore.
  * @typedef {Object} Usuario
  * @property {string} id_usuario    PK (id del documento = UID de Firebase Auth)
- * @property {string} nombre        nombre completo, 2 caracteres o más
- * @property {string} correo        correo electrónico (el mismo de Firebase Auth)
+ * @property {string} nombre        nombre, 2 caracteres o más
+ * @property {string} apellido      apellido del usuario
+ * @property {string} email         correo electrónico (el mismo de Firebase Auth)
  * @property {string} telefono      10 dígitos, se guarda como texto (ej: "3874123452")
- * @property {Date} fecha_creacion             fecha en que se creó la cuenta
+ * @property {Date} fecha_alta                  fecha en que se creó la cuenta
  * @property {Date} [fecha_ultima_modificacion] opcional, se agrega al modificar el perfil
  */
 
 // Perfil vacío: valores iniciales de los campos del formulario de perfil.
 export const USUARIO_VACIO = {
   nombre: '',
-  correo: '',
+  apellido: '',
+  email: '',
   telefono: '',
 };

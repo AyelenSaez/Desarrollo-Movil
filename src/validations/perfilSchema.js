@@ -16,8 +16,9 @@ export const perfilSchema = z.object({
     .min(1, { message: 'El nombre completo es obligatorio', abort: true })
     .min(2, 'El nombre completo debe tener al menos 2 caracteres'),
 
-  // Correo: obligatorio y con formato válido (ej: usuario@correo.com)
-  correo: z
+  // Email: obligatorio y con formato válido (ej: usuario@correo.com)
+  // Se llama "email" para coincidir con el campo del documento en Firestore.
+  email: z
     .string({ message: 'El correo electrónico es obligatorio' })
     .trim()
     .min(1, { message: 'El correo electrónico es obligatorio', abort: true })
