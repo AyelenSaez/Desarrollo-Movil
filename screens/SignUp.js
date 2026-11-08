@@ -230,7 +230,6 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
 
   // Solo se ejecuta si la validación de zod pasó correctamente
   const onSubmit = async ({ nombre, apellido, email, password }) => {
-    console.log("=== onSubmit ejecutado ===", email);
     setErrorGeneral("");
     setCargando(true);
     // Igual que en el Login: se avisa antes a Navigation para que, cuando
@@ -243,8 +242,7 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
 
       // Guardar el perfil en Firestore (colección "usuarios", id = UID)
       const perfil = await crearPerfil(credencial.user.uid, { nombre, apellido, email });
-      // Log temporal: muestra en la terminal si se guardó el perfil (borrar al terminar las pruebas)
-      console.log("Resultado crearPerfil:", perfil);
+     
       if (!perfil.ok) {
         console.warn("No se pudo guardar el perfil:", perfil.codigo, perfil.mensaje);
       }
