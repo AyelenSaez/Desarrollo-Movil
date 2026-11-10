@@ -1,4 +1,4 @@
-  import React, { useState, useEffect } from "react";
+ import React, { useState, useEffect } from "react";
  
     // componentes de React Native que se usan para armar la pantalla
     import {
@@ -27,7 +27,7 @@
     // fuente Work Sans
     import { FUENTES } from "../src/theme/fuentes";
       // obtenerPerfil: lee el perfil del usuario con sesión iniciada desde Firestore (S6-06)
-    import { obtenerPerfil } from "../src/services/perfilService";
+    import { obtenerPerfil, modificarPerfil } from "../src/services/perfilService";
     // react-hook-form maneja el formulario y zodResolver lo conecta con el esquema zod del perfil (S6-04)
     import { useForm, Controller } from "react-hook-form";
     import { zodResolver } from "@hookform/resolvers/zod";
@@ -185,6 +185,9 @@
     // aviso que se muestra arriba del formulario: { tipo: "exito" | "error", mensaje } o null
     const [aviso, setAviso] = useState(null);
  
+    // true mientras se guardan los cambios: deshabilita el botón para no guardar dos veces (S7-05)
+    const [guardando, setGuardando] = useState(false);
+ 
     // Devuelve el mensaje de error de un campo, o undefined si no tiene error (S7-04).
     // Si el campo está vacío muestra "Este campo es obligatorio" (igual que registro y equipos);
     // si tiene algo mal (ej. teléfono con letras) muestra el mensaje del esquema.
@@ -204,10 +207,25 @@
     };
  
     // Se ejecuta al tocar "Guardar cambios", pero SOLO si todos los campos son válidos (S7-04).
-    // SOLO DE PRUEBA: muestra el banner verde. S7-05 lo reemplaza por el guardado real
-    // y muestra el banner rojo si falla.
-    const handleGuardar = () => {
-        setAviso({ tipo: "exito", mensaje: "Los cambios se guardaron correctamente." });
+    // "datos" ya viene validado y sin espacios de más.
+    // S7-05: guarda con modificarPerfil y muestra el banner verde (éxito) o el rojo (error).
+    const handleGuardar = async (datos) => {
+        if (guardando) return;       // por si tocan el botón dos veces seguidas
+        setAviso(null);              // saca el aviso anterior
+        setGuardando(true);
+ 
+        // modificarPerfil no lanza excepciones: devuelve { ok: true, datos } o { ok: false, mensaje }
+        const resultado = await modificarPerfil({
+            nombre: datos.nombre,
+            telefono: datos.telefono,
+        });
+ 
+        setGuardando(false);
+        if (resultado.ok) {
+            setAviso({ tipo: "exito", mensaje: "Los cambios se guardaron correctamente." });
+        } else {
+            setAviso({ tipo: "error", mensaje: "No se guardaron los cambios. Intente de nuevo." });
+        }
     };
  
     // Se ejecuta al tocar "Cerrar sesión".
@@ -333,8 +351,12 @@
             />
  
             {/* botón verde: Guardar cambios */}
-            <TouchableOpacity style={styles.botonGuardar} onPress={handleSubmit(handleGuardar)}>
-            <Text style={styles.textoGuardar}>Guardar cambios</Text>
+            <TouchableOpacity
+            style={[styles.botonGuardar, guardando && styles.botonDeshabilitado]}
+            onPress={handleSubmit(handleGuardar)}
+            disabled={guardando}
+            >
+            <Text style={styles.textoGuardar}>{guardando ? "Guardando..." : "Guardar cambios"}</Text>
             </TouchableOpacity>
  
             {/* botón con borde rojo: Cerrar sesión */}
@@ -451,6 +473,9 @@
         marginTop: 10,
     },
     textoGuardar: { fontFamily: FUENTES.bold, fontSize: 18, color: COLORS.blanco },
+ 
+    // botón apagado mientras se guardan los cambios
+    botonDeshabilitado: { opacity: 0.6 },
  
     // botón con borde rojo: Cerrar sesión
     botonCerrar: {
