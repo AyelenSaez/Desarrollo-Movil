@@ -28,6 +28,8 @@ import { z } from "zod";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 // auth: instancia de Firebase Auth.
 import { auth } from "../src/config/firebaseConfig";
+// crearPerfil: guarda el documento del usuario en la colección "usuarios"
+import { crearPerfil } from "../src/services/perfilService";
 // FUENTES: fuente Work Sans de toda la app (reemplaza a fontWeight)
 import { FUENTES } from '../src/theme/fuentes';
 import MensajeError from "../components/MensajeError"; // el mismo que usa Login
@@ -227,7 +229,7 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
   const password = watch("password");
 
   // Solo se ejecuta si la validación de zod pasó correctamente
-  const onSubmit = async ({ email, password }) => {
+  const onSubmit = async ({ nombre, apellido, email, password }) => {
     setErrorGeneral("");
     setCargando(true);
     // Igual que en el Login: se avisa antes a Navigation para que, cuando
@@ -235,7 +237,15 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
     // y no salte directo a Home.
     setMostrarRegistroExito?.(true);
     try {
-      await createUserWithEmailAndPassword(auth, email.trim(), password);
+            // credencial: contiene el usuario recién creado (y su UID)
+      const credencial = await createUserWithEmailAndPassword(auth, email.trim(), password);
+
+      // Guardar el perfil en Firestore (colección "usuarios", id = UID)
+      const perfil = await crearPerfil(credencial.user.uid, { nombre, apellido, email });
+     
+      if (!perfil.ok) {
+        console.warn("No se pudo guardar el perfil:", perfil.codigo, perfil.mensaje);
+      }
       // Navigation detecta la sesión y muestra la pantalla "Cuenta creada".
     } catch (error) {
       setMostrarRegistroExito?.(false); // falló: no mostrar la pantalla de éxito

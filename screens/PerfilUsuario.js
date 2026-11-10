@@ -1,4 +1,4 @@
-    import React, { useState } from "react";
+    import React, { useState, useEffect } from "react";
 
     // componentes de React Native que se usan para armar la pantalla
     import {
@@ -10,6 +10,7 @@
     StyleSheet,            // estilos
     KeyboardAvoidingView,  // evita que el teclado tape los campos
     Platform,              // para saber si es iOS o Android
+    ActivityIndicator,     // ruedita de carga mientras se consulta el perfil
     } from "react-native";
 
     // márgenes seguros (notch, barra de estado)
@@ -25,7 +26,8 @@
     import { COLORES_EQUIPO } from "../components/EquipoVisual";
     // fuente Work Sans
     import { FUENTES } from "../src/theme/fuentes";
-
+      // obtenerPerfil: lee el perfil del usuario con sesión iniciada desde Firestore (S6-06)
+    import { obtenerPerfil } from "../src/services/perfilService";
     // Colores de la pantalla: los de Figma más los de los avisos
     const COLORS = {
     ...COLORES_EQUIPO,
@@ -35,12 +37,7 @@
     exitoTexto: "#334b27",
     };
 
-    // Datos de ejemplo (S7-03 los reemplaza por los del usuario con sesión iniciada)
-    const PERFIL_EJEMPLO = {
-    nombre: "Ejemplo",
-    email: "ejemplo@correo.com",
-    telefono: "3874123452",
-    };
+
 
     // ---------------------------------------------------------------
     // BANNER: aviso de éxito (verde) o de error (rojo) con botón para cerrarlo.
@@ -123,11 +120,48 @@
     export default function PerfilUsuario({ navigation }) {
     const insets = useSafeAreaInsets();
 
-    // un estado por cada campo (arrancan con los datos de ejemplo)
-    const [nombre, setNombre] = useState(PERFIL_EJEMPLO.nombre);
-    const [email, setEmail] = useState(PERFIL_EJEMPLO.email);
-    const [telefono, setTelefono] = useState(PERFIL_EJEMPLO.telefono);
+    // un estado por cada campo (arrancan vacíos y se completan con los datos de Firestore)
+    const [nombre, setNombre] = useState("");
+    const [email, setEmail] = useState("");
+    const [telefono, setTelefono] = useState("");
 
+    // true mientras se consulta el perfil (muestra la ruedita de carga)
+    const [cargando, setCargando] = useState(true);
+
+    // mensaje de error si la consulta falla (null = sin error)
+    const [errorCarga, setErrorCarga] = useState(null);
+
+    // S7-03: al abrir la pantalla, carga el perfil del usuario con sesión iniciada
+    useEffect(() => {
+        let activo = true; // evita actualizar la pantalla si ya se cerró
+
+        const cargarPerfil = async () => {
+        setCargando(true);
+        setErrorCarga(null);
+
+        // obtenerPerfil no lanza excepciones: devuelve { ok: true, datos } o { ok: false, mensaje }
+        const resultado = await obtenerPerfil();
+        if (!activo) return;
+
+        if (resultado.ok) {
+            // precarga los campos con los datos del usuario
+            setNombre(resultado.datos.nombre);
+            setEmail(resultado.datos.email);
+            setTelefono(resultado.datos.telefono);
+        } else {
+            // muestra el mensaje de error en el banner rojo
+            setErrorCarga(resultado.mensaje);
+        }
+        setCargando(false);
+        };
+
+        cargarPerfil();
+
+        // al salir de la pantalla se marca como inactiva
+        return () => {
+        activo = false;
+        };
+    }, []);
     // aviso que se muestra arriba del formulario: { tipo: "exito" | "error", mensaje } o null
     const [aviso, setAviso] = useState(null);
 
@@ -155,7 +189,14 @@
     const handleCerrarSesion = () => {
         console.log("Cerrar sesión: pendiente de S7-06");
     };
-
+    // mientras se consulta el perfil, se muestra una ruedita en toda la pantalla (S7-03)
+    if (cargando) {
+        return (
+        <View style={[styles.flex, { alignItems: "center", justifyContent: "center" }]}>
+            <ActivityIndicator size="large" color={COLORS.verde} />
+        </View>
+        );
+    }
     return (
         // para que el teclado no tape los campos en ios
         <KeyboardAvoidingView
@@ -202,7 +243,14 @@
         <ScrollView
             contentContainerStyle={styles.cuerpo}
             keyboardShouldPersistTaps="handled"
-        >
+        >            {/* banner rojo si falló la carga del perfil (S7-03) */}
+            {errorCarga ? (
+            <BannerAviso
+                tipo="error"
+                mensaje={errorCarga}
+                onCerrar={() => setErrorCarga(null)}
+            />
+            ) : null}
             {/* banner de éxito o error */}
             {aviso ? (
             <BannerAviso
