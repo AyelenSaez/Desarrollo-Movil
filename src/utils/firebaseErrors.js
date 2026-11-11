@@ -12,6 +12,13 @@ const MENSAJES_ERROR = {
   'auth/operation-not-allowed': 'El registro con correo no está habilitado en Firebase.',
   'auth/invalid-api-key': 'La clave API de Firebase no es válida. Revisá el archivo .env.',
   'auth/internal-error': 'Ocurrió un error en el servidor. Intentá de nuevo más tarde.',
+
+  // Casos del perfil (perfilService): estos códigos los devuelve Firestore, no Auth,
+  // por eso no llevan el prefijo "auth/".
+  'permission-denied': 'No tenés permisos para ver o modificar este perfil.',
+  'not-found': 'No se encontró el perfil del usuario.',
+  'unavailable': 'No hay conexión a internet. Revisá tu conexión e intentá de nuevo.',
+  'sin-conexion': 'No hay conexión a internet. Revisá tu conexión e intentá de nuevo.',
 };
 
 // Mensaje que se muestra si el código no está en el diccionario.
