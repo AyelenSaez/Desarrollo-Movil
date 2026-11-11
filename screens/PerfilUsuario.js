@@ -11,7 +11,11 @@
     KeyboardAvoidingView,  // evita que el teclado tape los campos
     Platform,              // para saber si es iOS o Android
     ActivityIndicator,     // ruedita de carga mientras se consulta el perfil
+    Image,                 // muestra la foto de perfil elegida (S7-07)
     } from "react-native";
+
+    // S7-07: abre la galería del teléfono para elegir la foto de perfil
+    import * as ImagePicker from "expo-image-picker";
  
     // márgenes seguros (notch, barra de estado)
     import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -187,6 +191,27 @@
  
     // true mientras se guardan los cambios: deshabilita el botón para no guardar dos veces (S7-05)
     const [guardando, setGuardando] = useState(false);
+
+    // S7-07: dirección (uri) de la foto elegida en la galería (null = se muestra la inicial)
+    const [fotoPerfil, setFotoPerfil] = useState(null);
+
+    // S7-07: al tocar la cámara del círculo abre la galería para elegir una foto.
+    // allowsEditing + aspect [1, 1]: deja recortarla cuadrada para que entre bien en el círculo.
+    const elegirFoto = async () => {
+        try {
+            const resultado = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ["images"], // solo fotos, no videos
+                allowsEditing: true,
+                aspect: [1, 1],
+                quality: 0.7,           // un poco comprimida para que pese menos
+            });
+            // canceled = el usuario cerró la galería sin elegir nada
+            if (!resultado.canceled) setFotoPerfil(resultado.assets[0].uri);
+        } catch (error) {
+            console.log("No se pudo abrir la galería:", error);
+            setAviso({ tipo: "error", mensaje: "No se pudo abrir la galería. Intente de nuevo." });
+        }
+    };
  
     // Devuelve el mensaje de error de un campo, o undefined si no tiene error (S7-04).
     // Si el campo está vacío muestra "Este campo es obligatorio" (igual que registro y equipos);
@@ -261,15 +286,20 @@
             </View>
  
             <View style={styles.perfilFila}>
-            {/* círculo verde con la inicial y la cámara (la cámara se conecta en S7-07) */}
-            <View>
+            {/* S7-07: círculo con la foto elegida (o la inicial si no hay foto).
+                Tocar el círculo o la cámara abre la galería. */}
+            <TouchableOpacity onPress={elegirFoto} accessibilityLabel="Cambiar foto de perfil">
                 <View style={styles.avatar}>
-                <Text style={styles.avatarLetra}>{inicial}</Text>
+                {fotoPerfil ? (
+                    <Image source={{ uri: fotoPerfil }} style={styles.avatarFoto} />
+                ) : (
+                    <Text style={styles.avatarLetra}>{inicial}</Text>
+                )}
                 </View>
                 <View style={styles.camara}>
                 <Ionicons name="camera-outline" size={16} color={COLORS.azul} />
                 </View>
-            </View>
+            </TouchableOpacity>
  
             {/* nombre y correo al lado del círculo */}
             <View style={styles.datos}>
@@ -399,7 +429,10 @@
         backgroundColor: COLORS.verde,
         alignItems: "center",
         justifyContent: "center",
+        overflow: "hidden", // recorta la foto en forma de círculo
     },
+    // foto de perfil: ocupa todo el círculo
+    avatarFoto: { width: "100%", height: "100%" },
     avatarLetra: { fontFamily: FUENTES.bold, fontSize: 40, color: COLORS.blanco },
  
     // cámara chiquita abajo a la derecha del círculo
