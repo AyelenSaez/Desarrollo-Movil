@@ -16,6 +16,13 @@
 
     // S7-07: abre la galería del teléfono para elegir la foto de perfil
     import * as ImagePicker from "expo-image-picker";
+    // AsyncStorage: guarda la foto elegida en el teléfono para que siga al volver a entrar
+    import AsyncStorage from "@react-native-async-storage/async-storage";
+    // auth: usuario con sesión iniciada (cada usuario tiene su propia foto guardada)
+    import { auth } from "../src/config/firebaseConfig";
+
+    // Clave con la que se guarda la foto de cada usuario en el teléfono
+    const claveFoto = () => `fotoPerfil_${auth.currentUser?.uid ?? "sin-sesion"}`;
  
     // márgenes seguros (notch, barra de estado)
     import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -195,6 +202,15 @@
     // S7-07: dirección (uri) de la foto elegida en la galería (null = se muestra la inicial)
     const [fotoPerfil, setFotoPerfil] = useState(null);
 
+    // Al abrir la pantalla: si el usuario ya había elegido una foto, se vuelve a mostrar
+    useEffect(() => {
+        AsyncStorage.getItem(claveFoto())
+            .then((uri) => {
+                if (uri) setFotoPerfil(uri);
+            })
+            .catch((error) => console.log("No se pudo leer la foto guardada:", error));
+    }, []);
+
     // S7-07: al tocar la cámara del círculo abre la galería para elegir una foto.
     // allowsEditing + aspect [1, 1]: deja recortarla cuadrada para que entre bien en el círculo.
     const elegirFoto = async () => {
@@ -206,7 +222,11 @@
                 quality: 0.7,           // un poco comprimida para que pese menos
             });
             // canceled = el usuario cerró la galería sin elegir nada
-            if (!resultado.canceled) setFotoPerfil(resultado.assets[0].uri);
+            if (resultado.canceled) return;
+            const uri = resultado.assets[0].uri;
+            setFotoPerfil(uri);
+            // la guarda en el teléfono para que siga ahí la próxima vez que entre
+            await AsyncStorage.setItem(claveFoto(), uri);
         } catch (error) {
             console.log("No se pudo abrir la galería:", error);
             setAviso({ tipo: "error", mensaje: "No se pudo abrir la galería. Intente de nuevo." });
@@ -317,7 +337,8 @@
         <ScrollView
             contentContainerStyle={styles.cuerpo}
             keyboardShouldPersistTaps="handled"
-        >            {/* banner rojo si falló la carga del perfil (S7-03) */}
+        >
+            {/* banner rojo si falló la carga del perfil (S7-03) */}
             {errorCarga ? (
             <BannerAviso
                 tipo="error"
