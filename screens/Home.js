@@ -19,10 +19,12 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context'; // margenes seguros (notch, barra de abajo)
 import { Ionicons } from '@expo/vector-icons'; // iconos que vienen con expo
-// signOut: cierra la sesión del usuario en Firebase.
-import { signOut } from 'firebase/auth';
-// auth: instancia de Firebase Auth (para saber quién está logueado y cerrar sesión).
+// auth: instancia de Firebase Auth (para saber quién está logueado).
 import { auth } from '../src/config/firebaseConfig';
+// cerrarSesion: cierra la sesión en Firebase (no lanza excepciones, devuelve { ok }).
+import { cerrarSesion } from '../src/services/perfilService';
+// S7-06: cartel «¿Desea cerrar su sesión?» que se muestra antes de cerrar la sesión.
+import MensajeCerrarSesion from '../components/MensajeCerrarSesion';
 // useNotificacion: muestra el aviso de "Sesión cerrada correctamente".
 import { useNotificacion } from '../components/Notificacion';
 // FUENTES: fuente Work Sans de toda la app (reemplaza a fontWeight)
@@ -114,13 +116,21 @@ export default function Home({ navigation }) {
     });
   };
 
-  // cierra la sesion en firebase y muestra un aviso.
+  // S7-06: antes de cerrar la sesión se pregunta con el cartel de confirmación.
+  const [mostrarConfirmarCierre, setMostrarConfirmarCierre] = useState(false); // true = cartel visible
+  const [cerrandoSesion, setCerrandoSesion] = useState(false); // true mientras se espera a Firebase
+
+  // Al confirmar en el cartel: cierra la sesión en Firebase y muestra un aviso.
   // Navigation detecta que ya no hay usuario y vuelve al Login solo.
   const handleLogOut = async () => {
-    try {
-      await signOut(auth);
+    if (cerrandoSesion) return;
+    setCerrandoSesion(true);
+    const resultado = await cerrarSesion();
+    if (resultado.ok) {
       mostrarNotificacion('Sesión cerrada correctamente.', 'info');
-    } catch (error) {
+    } else {
+      setCerrandoSesion(false);
+      setMostrarConfirmarCierre(false);
       mostrarNotificacion('Hubo un problema al cerrar sesión.', 'error');
     }
   };
@@ -295,13 +305,21 @@ export default function Home({ navigation }) {
             })}
           </View>
 
-          {/* cerrar sesion: primero cierra el menu y al terminar la animacion cierra la sesion */}
-          <TouchableOpacity style={styles.logout} onPress={() => cerrarMenu(handleLogOut)}>
+          {/* cerrar sesion: primero cierra el menu y al terminar la animacion muestra el cartel de confirmacion */}
+          <TouchableOpacity style={styles.logout} onPress={() => cerrarMenu(() => setMostrarConfirmarCierre(true))}>
             <Ionicons name="log-out-outline" size={20} color="#fff" style={{ marginRight: 14 }} />
             <Text style={styles.menuText}>Cerrar sesión</Text>
           </TouchableOpacity>
         </Animated.View>
       </Modal>
+
+      {/* S7-06: cartel «¿Desea cerrar su sesión?» (Cancelar verde / Cerrar sesión con borde rojo) */}
+      <MensajeCerrarSesion
+        visible={mostrarConfirmarCierre}
+        cerrando={cerrandoSesion}
+        onCancelar={() => setMostrarConfirmarCierre(false)}
+        onConfirmar={handleLogOut}
+      />
     </View>
   );
 }
