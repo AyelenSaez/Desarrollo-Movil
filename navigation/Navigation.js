@@ -31,6 +31,7 @@ import ListadoEquipos from '../screens/ListadoEquipos';
 import RegistroEquipo from '../screens/RegistroEquipo';
 import ModificarEquipo from '../screens/ModificarEquipo';
 import DetalleEquipo from '../screens/DetalleEquipo';
+import PerfilUsuario from '../screens/PerfilUsuario';
 // FUENTES: fuente Work Sans de toda la app (reemplaza a fontWeight)
 import { FUENTES } from '../src/theme/fuentes';
 
@@ -115,6 +116,13 @@ export default function Navigation() {
             <Stack.Screen
               name="DetalleEquipo"
               component={DetalleEquipo}
+              options={{ headerShown: false }}
+            />
+
+            {/* Mi perfil: tiene su propia flecha para volver en el encabezado azul */}
+            <Stack.Screen
+              name="PerfilUsuario"
+              component={PerfilUsuario}
               options={{ headerShown: false }}
             />
           </>

@@ -69,6 +69,7 @@ const ESTADO_EQUIPOS = [
 const MENU = [
   { key: 'Inicio', label: 'Inicio', icon: 'home-outline', route: null },
   { key: 'Equipos', label: 'Equipos', icon: 'hardware-chip-outline', route: 'ListadoEquipos' },
+  { key: 'Perfil', label: 'Mi perfil', icon: 'person-circle-outline', route: 'PerfilUsuario' },
 ];
 
 // ancho del menu lateral:
