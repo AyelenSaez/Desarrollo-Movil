@@ -14,7 +14,10 @@ import {
   ScrollView,        // fila de filtros que se desliza de costado
   ActivityIndicator, // ruedita de carga
   StyleSheet,        // crear estilos
+  Image,             // foto de perfil en el círculo del encabezado
 } from 'react-native';
+// useFotoPerfil: foto de perfil guardada en el teléfono (S7-07)
+import { useFotoPerfil } from '../src/utils/fotoPerfil';
 // margenes seguros (notch, barra de abajo)
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // Ionicons: íconos (flecha, lupa, ojo, lápiz, papelera).
@@ -94,6 +97,8 @@ export default function ListadoEquipos({ navigation }) {
   // inicial del usuario logueado para el avatar (igual que en Home)
   const usuario = auth.currentUser;
   const inicial = (usuario?.displayName || usuario?.email || 'U').charAt(0).toUpperCase();
+  // foto elegida en Mi perfil (null = se muestra la inicial)
+  const [fotoPerfil] = useFotoPerfil();
   const [equipos, setEquipos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -224,7 +229,11 @@ export default function ListadoEquipos({ navigation }) {
         </TouchableOpacity>
         <Text style={styles.titulo}>Equipos</Text>
         <View style={styles.avatar}>
-          <Text style={styles.avatarTexto}>{inicial}</Text>
+          {fotoPerfil ? (
+            <Image source={{ uri: fotoPerfil }} style={styles.avatarFoto} />
+          ) : (
+            <Text style={styles.avatarTexto}>{inicial}</Text>
+          )}
         </View>
       </View>
 
@@ -315,7 +324,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.verde,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden', // recorta la foto de perfil en forma de círculo
   },
+  // foto de perfil: ocupa todo el círculo
+  avatarFoto: { width: '100%', height: '100%' },
   avatarTexto: { fontFamily: FUENTES.bold, fontSize: 30, color: COLORS.blanco },
 
   // ocupa todo el espacio libre para que la ruedita quede en el centro

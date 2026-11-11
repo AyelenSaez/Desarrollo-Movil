@@ -29,6 +29,8 @@ import MensajeCerrarSesion from '../components/MensajeCerrarSesion';
 import { useNotificacion } from '../components/Notificacion';
 // FUENTES: fuente Work Sans de toda la app (reemplaza a fontWeight)
 import { FUENTES } from '../src/theme/fuentes';
+// useFotoPerfil: foto de perfil guardada en el teléfono (S7-07), para el círculo del menú
+import { useFotoPerfil } from '../src/utils/fotoPerfil';
 
 // paleta de colores de la app
 const C = {
@@ -89,6 +91,8 @@ export default function Home({ navigation }) {
   const usuario = auth.currentUser;
   const nombre = usuario?.displayName || usuario?.email?.split('@')[0] || 'Usuario';
   const inicial = nombre.charAt(0).toUpperCase();
+  // foto elegida en Mi perfil (null = se muestra la inicial). Se relee al volver a esta pantalla.
+  const [fotoPerfil] = useFotoPerfil();
 
   // abre el menu con animacion desde la izquierda
   const abrirMenu = () => {
@@ -273,7 +277,11 @@ export default function Home({ navigation }) {
           <View style={styles.drawerTop}>
             <View style={styles.drawerUser}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{inicial}</Text>
+                {fotoPerfil ? (
+                  <Image source={{ uri: fotoPerfil }} style={styles.avatarFoto} />
+                ) : (
+                  <Text style={styles.avatarText}>{inicial}</Text>
+                )}
               </View>
               <View style={{ marginLeft: 12, flex: 1 }}>
                 <Text style={styles.drawerNombre} numberOfLines={1}>
@@ -387,7 +395,10 @@ const styles = StyleSheet.create({
     backgroundColor: C.green,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden', // recorta la foto de perfil en forma de círculo
   },
+  // foto de perfil: ocupa todo el círculo
+  avatarFoto: { width: '100%', height: '100%' },
   avatarReserva: { width: 44, height: 44, borderRadius: 22, marginRight: 12 },
   avatarText: { fontFamily: FUENTES.bold, color: '#fff', fontSize: 16 },
 

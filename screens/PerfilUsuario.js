@@ -16,13 +16,10 @@
 
     // S7-07: abre la galería del teléfono para elegir la foto de perfil
     import * as ImagePicker from "expo-image-picker";
-    // AsyncStorage: guarda la foto elegida en el teléfono para que siga al volver a entrar
-    import AsyncStorage from "@react-native-async-storage/async-storage";
-    // auth: usuario con sesión iniciada (cada usuario tiene su propia foto guardada)
-    import { auth } from "../src/config/firebaseConfig";
-
-    // Clave con la que se guarda la foto de cada usuario en el teléfono
-    const claveFoto = () => `fotoPerfil_${auth.currentUser?.uid ?? "sin-sesion"}`;
+    // foto de perfil guardada en el teléfono (la comparten Mi perfil, el menú y Equipos)
+    import { useFotoPerfil, guardarFotoPerfil } from "../src/utils/fotoPerfil";
+    // avisos flotantes: muestra "cambios guardados" al volver al Inicio
+    import { useNotificacion } from "../components/Notificacion";
  
     // márgenes seguros (notch, barra de estado)
     import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -200,16 +197,11 @@
     const [guardando, setGuardando] = useState(false);
 
     // S7-07: dirección (uri) de la foto elegida en la galería (null = se muestra la inicial)
-    const [fotoPerfil, setFotoPerfil] = useState(null);
+    // Si el usuario ya había elegido una foto, useFotoPerfil la lee del teléfono.
+    const [fotoPerfil, setFotoPerfil] = useFotoPerfil();
 
-    // Al abrir la pantalla: si el usuario ya había elegido una foto, se vuelve a mostrar
-    useEffect(() => {
-        AsyncStorage.getItem(claveFoto())
-            .then((uri) => {
-                if (uri) setFotoPerfil(uri);
-            })
-            .catch((error) => console.log("No se pudo leer la foto guardada:", error));
-    }, []);
+    // aviso flotante (el mismo que usa Equipos) para avisar al volver al Inicio
+    const { mostrarNotificacion } = useNotificacion();
 
     // S7-07: al tocar la cámara del círculo abre la galería para elegir una foto.
     // allowsEditing + aspect [1, 1]: deja recortarla cuadrada para que entre bien en el círculo.
@@ -226,7 +218,7 @@
             const uri = resultado.assets[0].uri;
             setFotoPerfil(uri);
             // la guarda en el teléfono para que siga ahí la próxima vez que entre
-            await AsyncStorage.setItem(claveFoto(), uri);
+            await guardarFotoPerfil(uri);
         } catch (error) {
             console.log("No se pudo abrir la galería:", error);
             setAviso({ tipo: "error", mensaje: "No se pudo abrir la galería. Intente de nuevo." });
@@ -253,7 +245,8 @@
  
     // Se ejecuta al tocar "Guardar cambios", pero SOLO si todos los campos son válidos (S7-04).
     // "datos" ya viene validado y sin espacios de más.
-    // S7-05: guarda con modificarPerfil y muestra el banner verde (éxito) o el rojo (error).
+    // S7-05: guarda con modificarPerfil.
+    // Si sale bien vuelve al Inicio y muestra el aviso verde; si falla se queda con el banner rojo.
     const handleGuardar = async (datos) => {
         if (guardando) return;       // por si tocan el botón dos veces seguidas
         setAviso(null);              // saca el aviso anterior
@@ -267,7 +260,8 @@
  
         setGuardando(false);
         if (resultado.ok) {
-            setAviso({ tipo: "exito", mensaje: "Los cambios se guardaron correctamente." });
+            mostrarNotificacion("Los cambios se guardaron correctamente.", "exito");
+            volver();
         } else {
             setAviso({ tipo: "error", mensaje: "No se guardaron los cambios. Intente de nuevo." });
         }
