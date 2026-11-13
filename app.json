@@ -23,7 +23,14 @@
     "plugins": [
       "expo-secure-store",
       "expo-status-bar",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "La app necesita acceder a tus fotos para que elijas tu foto de perfil.",
+          "cameraPermission": "La app necesita usar la cámara para que te saques una foto de perfil."
+        }
+      ]
     ]
   }
 }

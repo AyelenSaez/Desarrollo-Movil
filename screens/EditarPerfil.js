@@ -12,9 +12,11 @@
     Platform,              // para saber si es iOS o Android
     ActivityIndicator,     // ruedita de carga mientras se consulta el perfil
     Image,                 // muestra la foto de perfil elegida (S7-07)
+    Modal,                 // panel de abajo con las opciones de la foto
+    Pressable,             // fondo oscuro del panel (tocarlo lo cierra)
     } from "react-native";
 
-    // S7-07: abre la galería del teléfono para elegir la foto de perfil
+    // S7-07: abre la cámara o la galería del teléfono para elegir la foto de perfil
     import * as ImagePicker from "expo-image-picker";
     // foto de perfil guardada en el teléfono (la comparten Mi perfil, el menú y Equipos)
     import { useFotoPerfil, guardarFotoPerfil } from "../src/utils/fotoPerfil";
@@ -209,22 +211,64 @@
     // aviso flotante (el mismo que usa Equipos) para avisar al volver al Inicio
     const { mostrarNotificacion } = useNotificacion();
 
-    // S7-07: al tocar la cámara del círculo abre la galería para elegir una foto.
+    // true = se muestra el panel de abajo con "Tomar foto" / "Elegir de la galería"
+    const [opcionesFoto, setOpcionesFoto] = useState(false);
+
+    // opciones comunes para la cámara y la galería.
     // allowsEditing + aspect [1, 1]: deja recortarla cuadrada para que entre bien en el círculo.
-    const elegirFoto = async () => {
+    const OPCIONES_IMAGEN = {
+        mediaTypes: ["images"], // solo fotos, no videos
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,           // un poco comprimida para que pese menos
+    };
+
+    // Guarda la foto que devolvió la cámara o la galería (si el usuario no canceló)
+    const usarFoto = async (resultado) => {
+        // canceled = el usuario cerró la cámara o la galería sin elegir nada
+        if (resultado.canceled) return;
+        const uri = resultado.assets[0].uri;
+        setFotoPerfil(uri);
+        // la guarda en el teléfono para que siga ahí la próxima vez que entre
+        await guardarFotoPerfil(uri);
+    };
+
+    // Cierra el panel y espera a que termine de cerrarse antes de abrir la cámara
+    // o la galería (en iOS no se pueden abrir con el panel todavía visible).
+    const cerrarPanel = () => {
+        setOpcionesFoto(false);
+        return new Promise((resolver) => setTimeout(resolver, 350));
+    };
+
+    // S7-07: "Tomar foto" → pide permiso de cámara y abre la cámara del teléfono
+    const tomarFoto = async () => {
+        await cerrarPanel();
         try {
-            const resultado = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ["images"], // solo fotos, no videos
-                allowsEditing: true,
-                aspect: [1, 1],
-                quality: 0.7,           // un poco comprimida para que pese menos
+            const permiso = await ImagePicker.requestCameraPermissionsAsync();
+            if (!permiso.granted) {
+                setAviso({
+                    tipo: "error",
+                    mensaje: "Para sacarte una foto, habilitá el permiso de cámara en la configuración del teléfono.",
+                });
+                return;
+            }
+            const resultado = await ImagePicker.launchCameraAsync({
+                ...OPCIONES_IMAGEN,
+                cameraType: ImagePicker.CameraType.front, // arranca con la cámara frontal (selfie)
             });
-            // canceled = el usuario cerró la galería sin elegir nada
-            if (resultado.canceled) return;
-            const uri = resultado.assets[0].uri;
-            setFotoPerfil(uri);
-            // la guarda en el teléfono para que siga ahí la próxima vez que entre
-            await guardarFotoPerfil(uri);
+            await usarFoto(resultado);
+        } catch (error) {
+            console.log("No se pudo abrir la cámara:", error);
+            setAviso({ tipo: "error", mensaje: "No se pudo abrir la cámara. Intente de nuevo." });
+        }
+    };
+
+    // S7-07: "Elegir de la galería" → abre la galería del teléfono
+    const elegirDeGaleria = async () => {
+        await cerrarPanel();
+        try {
+            const resultado = await ImagePicker.launchImageLibraryAsync(OPCIONES_IMAGEN);
+            await usarFoto(resultado);
         } catch (error) {
             console.log("No se pudo abrir la galería:", error);
             setAviso({ tipo: "error", mensaje: "No se pudo abrir la galería. Intente de nuevo." });
@@ -303,8 +347,8 @@
  
             <View style={styles.perfilFila}>
             {/* S7-07: círculo con la foto elegida (o la inicial si no hay foto).
-                Tocar el círculo o la cámara abre la galería. */}
-            <TouchableOpacity onPress={elegirFoto} accessibilityLabel="Cambiar foto de perfil">
+                Tocar el círculo o la cámara abre el panel para sacar una foto o elegirla de la galería. */}
+            <TouchableOpacity onPress={() => setOpcionesFoto(true)} accessibilityLabel="Cambiar foto de perfil">
                 <View style={styles.avatar}>
                 {fotoPerfil ? (
                     <Image source={{ uri: fotoPerfil }} style={styles.avatarFoto} />
@@ -426,6 +470,47 @@
             <Text style={styles.textoCancelar}>Cancelar</Text>
             </TouchableOpacity>
         </ScrollView>
+
+        {/* S7-07: panel que sube desde abajo con las opciones para la foto de perfil */}
+        <Modal
+            visible={opcionesFoto}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setOpcionesFoto(false)} // botón "atrás" de Android
+        >
+            {/* fondo oscuro: tocarlo cierra el panel */}
+            <Pressable style={styles.panelFondo} onPress={() => setOpcionesFoto(false)}>
+            {/* el panel en sí (tocarlo no lo cierra) */}
+            <Pressable style={[styles.panel, { paddingBottom: insets.bottom + 16 }]}>
+                <View style={styles.panelBarrita} />
+                <Text style={styles.panelTitulo}>Foto de perfil</Text>
+
+                {/* Tomar foto con la cámara */}
+                <TouchableOpacity style={styles.panelOpcion} onPress={tomarFoto}>
+                <View style={styles.panelIcono}>
+                    <Ionicons name="camera-outline" size={22} color={COLORS.azul} />
+                </View>
+                <Text style={styles.panelTexto}>Tomar foto</Text>
+                </TouchableOpacity>
+
+                {/* Elegir una foto de la galería */}
+                <TouchableOpacity style={styles.panelOpcion} onPress={elegirDeGaleria}>
+                <View style={styles.panelIcono}>
+                    <Ionicons name="images-outline" size={22} color={COLORS.azul} />
+                </View>
+                <Text style={styles.panelTexto}>Elegir de la galería</Text>
+                </TouchableOpacity>
+
+                {/* Cancelar: cierra el panel */}
+                <TouchableOpacity
+                style={styles.panelCancelar}
+                onPress={() => setOpcionesFoto(false)}
+                >
+                <Text style={styles.panelCancelarTexto}>Cancelar</Text>
+                </TouchableOpacity>
+            </Pressable>
+            </Pressable>
+        </Modal>
         </KeyboardAvoidingView>
     );
     }
@@ -554,4 +639,49 @@
         backgroundColor: COLORS.blanco,
     },
     textoCancelar: { fontFamily: FUENTES.bold, fontSize: 18, color: COLORS.azul },
+
+    // panel de abajo con las opciones de la foto (S7-07)
+    panelFondo: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
+    panel: {
+        backgroundColor: COLORS.blanco,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        paddingHorizontal: 20,
+        paddingTop: 10,
+    },
+    // rayita gris de arriba (indica que es un panel)
+    panelBarrita: {
+        alignSelf: "center",
+        width: 40,
+        height: 5,
+        borderRadius: 3,
+        backgroundColor: "rgba(30,30,30,0.15)",
+        marginBottom: 14,
+    },
+    panelTitulo: {
+        fontFamily: FUENTES.bold,
+        fontSize: 18,
+        color: COLORS.azul,
+        marginBottom: 8,
+    },
+    // cada opción: ícono en círculo celeste + texto
+    panelOpcion: { flexDirection: "row", alignItems: "center", paddingVertical: 12 },
+    panelIcono: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: COLORS.celeste,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    panelTexto: { fontFamily: FUENTES.medium, fontSize: 16, color: COLORS.texto, marginLeft: 14 },
+    panelCancelar: {
+        marginTop: 12,
+        height: 48,
+        borderRadius: 10,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(30,30,30,0.06)",
+    },
+    panelCancelarTexto: { fontFamily: FUENTES.semibold, fontSize: 16, color: COLORS.texto },
     });
