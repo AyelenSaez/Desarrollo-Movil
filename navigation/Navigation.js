@@ -32,6 +32,7 @@ import RegistroEquipo from '../screens/RegistroEquipo';
 import ModificarEquipo from '../screens/ModificarEquipo';
 import DetalleEquipo from '../screens/DetalleEquipo';
 import PerfilUsuario from '../screens/PerfilUsuario';
+import EditarPerfil from '../screens/EditarPerfil';
 // FUENTES: fuente Work Sans de toda la app (reemplaza a fontWeight)
 import { FUENTES } from '../src/theme/fuentes';
 
@@ -123,6 +124,12 @@ export default function Navigation() {
             <Stack.Screen
               name="PerfilUsuario"
               component={PerfilUsuario}
+              options={{ headerShown: false }}
+            />
+            {/* Editar perfil: se abre desde el botón "Editar perfil" de Mi perfil */}
+            <Stack.Screen
+              name="EditarPerfil"
+              component={EditarPerfil}
               options={{ headerShown: false }}
             />
           </>

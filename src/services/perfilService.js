@@ -2,9 +2,9 @@
 // para que las pantallas no tengan que hablar con Firebase directamente.
 
 // doc: referencia a un documento de Firestore.
-// updateDoc: modifica solo los campos indicados de un documento.
+// setDoc: crea o actualiza un documento (con merge: true solo toca los campos indicados).
 // serverTimestamp: fecha y hora del servidor de Firebase.
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 // signOut: cierra la sesión del usuario en Firebase Auth.
 import { signOut } from 'firebase/auth';
 // auth y db: instancias de Firebase configuradas en firebaseConfig.
@@ -17,13 +17,15 @@ import { perfilSchema } from '../validations/perfilSchema';
 import { COLECCION_USUARIOS } from '../models/Usuario';
 
 /**
- * Modifica el nombre y el teléfono del usuario con sesión iniciada.
+ * Modifica el nombre, el apellido y el teléfono del usuario con sesión iniciada.
  * Valida los datos con el esquema zod antes de guardarlos.
+ * Si el usuario todavía no tiene documento en Firestore (cuenta vieja o
+ * registro que no pudo guardar el perfil), lo crea.
  * No lanza excepciones: siempre devuelve un objeto con el resultado.
  *
- * @param {{ nombre: string, telefono: string }} datos
+ * @param {{ nombre: string, apellido: string, telefono: string }} datos
  * @returns {Promise<
- *   { ok: true, datos: { nombre: string, telefono: string } } |
+ *   { ok: true, datos: { nombre: string, apellido: string, telefono: string } } |
  *   { ok: false, codigo: string, mensaje: string }
  * >}
  */
@@ -36,7 +38,7 @@ export async function modificarPerfil(datos) {
 
   // Paso 2: validar solo los campos que se modifican.
   const validacion = perfilSchema
-    .pick({ nombre: true, telefono: true })
+    .pick({ nombre: true, apellido: true, telefono: true })
     .safeParse(datos);
 
   if (!validacion.success) {
@@ -47,16 +49,27 @@ export async function modificarPerfil(datos) {
     };
   }
 
-  const { nombre, telefono } = validacion.data;
+  const { nombre, apellido, telefono } = validacion.data;
 
-  // Paso 3: actualizar el documento del usuario (su ID es el UID de Auth).
+  // Paso 3: guardar en el documento del usuario (su ID es el UID de Auth).
+  // setDoc con merge: true actualiza solo estos campos y, si el documento
+  // no existe, lo crea (updateDoc fallaría con "not-found").
   try {
-    await updateDoc(doc(db, COLECCION_USUARIOS, usuario.uid), {
-      nombre: nombre.trim(),
-      telefono: telefono.trim(),
-      fecha_ultima_modificacion: serverTimestamp(),
-    });
-    return { ok: true, datos: { nombre: nombre.trim(), telefono: telefono.trim() } };
+    await setDoc(
+      doc(db, COLECCION_USUARIOS, usuario.uid),
+      {
+        nombre: nombre.trim(),
+        apellido: apellido.trim(),
+        email: usuario.email ?? '',
+        telefono: telefono.trim(),
+        fecha_ultima_modificacion: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    return {
+      ok: true,
+      datos: { nombre: nombre.trim(), apellido: apellido.trim(), telefono: telefono.trim() },
+    };
   } catch (error) {
     const codigo = error?.code ?? 'desconocido';
     console.error('Error al modificar el perfil:', codigo, error?.message);
@@ -130,13 +143,15 @@ export async function crearPerfil(uid, { nombre, apellido = '', email, telefono 
 
 /**
  * S6-06: lee el perfil del usuario con sesión iniciada.
- * Devuelve nombre, correo y teléfono, o un error si no hay sesión
+ * Devuelve nombre, apellido, correo y teléfono, o un error si no hay sesión
  * o si el documento no existe.
+ * Si el documento no existe, el error trae igual "datos" con el correo de la
+ * cuenta, para que la pantalla pueda completar el perfil y guardarlo.
  * No lanza excepciones: siempre devuelve un objeto con el resultado.
  *
  * @returns {Promise<
- *   { ok: true, datos: { nombre: string, email: string, telefono: string } } |
- *   { ok: false, codigo: string, mensaje: string }
+ *   { ok: true, datos: { nombre: string, apellido: string, email: string, telefono: string } } |
+ *   { ok: false, codigo: string, mensaje: string, datos?: object }
  * >}
  */
 export async function obtenerPerfil() {
@@ -150,7 +165,12 @@ export async function obtenerPerfil() {
   try {
     const snap = await getDoc(doc(db, COLECCION_USUARIOS, usuario.uid));
     if (!snap.exists()) {
-      return { ok: false, codigo: 'not-found', mensaje: 'No se encontró el perfil del usuario.' };
+      return {
+        ok: false,
+        codigo: 'not-found',
+        mensaje: 'Todavía no cargaste tus datos. Completalos y tocá "Guardar cambios".',
+        datos: { nombre: '', apellido: '', email: usuario.email ?? '', telefono: '' },
+      };
     }
 
     const d = snap.data();
@@ -158,6 +178,7 @@ export async function obtenerPerfil() {
       ok: true,
       datos: {
         nombre: d.nombre ?? '',
+        apellido: d.apellido ?? '',
         email: d.email ?? usuario.email ?? '',
         telefono: d.telefono ?? '',
       },
