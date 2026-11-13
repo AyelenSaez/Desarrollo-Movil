@@ -22,6 +22,8 @@
     import { useFotoPerfil, guardarFotoPerfil } from "../src/utils/fotoPerfil";
     // avisos flotantes: muestra "cambios guardados" al volver al Inicio
     import { useNotificacion } from "../components/Notificacion";
+    // visor de la foto a pantalla completa
+    import VisorFoto from "../components/VisorFoto";
  
     // márgenes seguros (notch, barra de estado)
     import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -213,6 +215,15 @@
 
     // true = se muestra el panel de abajo con "Tomar foto" / "Elegir de la galería"
     const [opcionesFoto, setOpcionesFoto] = useState(false);
+
+    // true = se muestra la foto a pantalla completa
+    const [verFoto, setVerFoto] = useState(false);
+
+    // "Ver foto" → cierra el panel y abre la foto a pantalla completa
+    const abrirFoto = async () => {
+        await cerrarPanel();
+        setVerFoto(true);
+    };
 
     // opciones comunes para la cámara y la galería.
     // allowsEditing + aspect [1, 1]: deja recortarla cuadrada para que entre bien en el círculo.
@@ -485,6 +496,16 @@
                 <View style={styles.panelBarrita} />
                 <Text style={styles.panelTitulo}>Foto de perfil</Text>
 
+                {/* Ver la foto actual a pantalla completa (solo si ya tiene foto) */}
+                {fotoPerfil ? (
+                <TouchableOpacity style={styles.panelOpcion} onPress={abrirFoto}>
+                    <View style={styles.panelIcono}>
+                    <Ionicons name="eye-outline" size={22} color={COLORS.azul} />
+                    </View>
+                    <Text style={styles.panelTexto}>Ver foto</Text>
+                </TouchableOpacity>
+                ) : null}
+
                 {/* Tomar foto con la cámara */}
                 <TouchableOpacity style={styles.panelOpcion} onPress={tomarFoto}>
                 <View style={styles.panelIcono}>
@@ -511,6 +532,9 @@
             </Pressable>
             </Pressable>
         </Modal>
+
+        {/* foto a pantalla completa */}
+        <VisorFoto visible={verFoto} uri={fotoPerfil} onCerrar={() => setVerFoto(false)} />
         </KeyboardAvoidingView>
     );
     }

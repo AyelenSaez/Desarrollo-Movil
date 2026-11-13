@@ -29,6 +29,8 @@ import { COLORES_EQUIPO } from "../components/EquipoVisual";
 import { FUENTES } from "../src/theme/fuentes";
 // obtenerPerfil: lee el perfil del usuario con sesión iniciada desde Firestore (S6-06)
 import { obtenerPerfil } from "../src/services/perfilService";
+// visor de la foto a pantalla completa
+import VisorFoto from "../components/VisorFoto";
 
 // Colores de la pantalla: los de Figma más los de los avisos
 const COLORS = {
@@ -84,6 +86,9 @@ export default function PerfilUsuario({ navigation }) {
 
   // foto de perfil guardada en el teléfono (null = se muestra la inicial)
   const [fotoPerfil] = useFotoPerfil();
+
+  // true = se muestra la foto a pantalla completa
+  const [verFoto, setVerFoto] = useState(false);
 
   // S7-03: cada vez que se muestra la pantalla, carga el perfil del usuario con sesión iniciada
   useFocusEffect(
@@ -163,8 +168,15 @@ export default function PerfilUsuario({ navigation }) {
 
         {/* bloque centrado con la foto y los datos principales */}
         <View style={styles.perfilCentro}>
-          {/* círculo con la foto (o la inicial si no hay foto) */}
-          <View style={styles.avatarBorde}>
+          {/* círculo con la foto (o la inicial si no hay foto).
+              Si hay foto, tocarla la abre a pantalla completa. */}
+          <TouchableOpacity
+            style={styles.avatarBorde}
+            onPress={() => setVerFoto(true)}
+            disabled={!fotoPerfil}
+            activeOpacity={0.8}
+            accessibilityLabel="Ver foto de perfil"
+          >
             <View style={styles.avatar}>
               {fotoPerfil ? (
                 <Image source={{ uri: fotoPerfil }} style={styles.avatarFoto} />
@@ -172,7 +184,7 @@ export default function PerfilUsuario({ navigation }) {
                 <Text style={styles.avatarLetra}>{inicial}</Text>
               )}
             </View>
-          </View>
+          </TouchableOpacity>
 
           <Text style={styles.nombreEncabezado} numberOfLines={1}>
             {nombreCompleto || "Sin nombre"}
@@ -219,6 +231,9 @@ export default function PerfilUsuario({ navigation }) {
           <Text style={styles.textoCerrar}>Cerrar sesión</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* foto a pantalla completa */}
+      <VisorFoto visible={verFoto} uri={fotoPerfil} onCerrar={() => setVerFoto(false)} />
     </View>
   );
 }
