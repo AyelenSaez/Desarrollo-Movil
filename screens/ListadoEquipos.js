@@ -18,6 +18,8 @@ import {
 } from 'react-native';
 // useFotoPerfil: foto de perfil guardada en el teléfono (S7-07)
 import { useFotoPerfil } from '../src/utils/fotoPerfil';
+// useNombreUsuario: nombre guardado en Firestore, para la inicial del avatar
+import { useNombreUsuario } from '../src/utils/nombreUsuario';
 // margenes seguros (notch, barra de abajo)
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 // Ionicons: íconos (flecha, lupa, ojo, lápiz, papelera).
@@ -28,8 +30,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import MensajeError from '../components/MensajeError';
 // MensajeConfirmarEliminacion: cartel que pregunta antes de borrar un equipo.
 import MensajeConfirmarEliminacion from '../components/MensajeConfirmarEliminacion';
-// auth: usuario logueado, para la inicial del avatar.
-import { auth } from '../src/config/firebaseConfig';
 // Colores, ícono del tipo y etiqueta del estado (compartidos con el Detalle)
 import { COLORES_EQUIPO as COLORS, IconoTipo, EtiquetaEstado } from '../components/EquipoVisual';
 // useNotificacion: para mostrar avisos de éxito o error arriba de la pantalla.
@@ -93,8 +93,7 @@ export default function ListadoEquipos({ navigation }) {
   const insets = useSafeAreaInsets();
   const { mostrarNotificacion } = useNotificacion();
   // inicial del usuario logueado para el avatar (igual que en Home)
-  const usuario = auth.currentUser;
-  const inicial = (usuario?.displayName || usuario?.email || 'U').charAt(0).toUpperCase();
+  const inicial = useNombreUsuario().charAt(0).toUpperCase();
   // foto elegida en Mi perfil (null = se muestra la inicial)
   const [fotoPerfil] = useFotoPerfil();
   const [equipos, setEquipos] = useState([]);

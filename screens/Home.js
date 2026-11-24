@@ -31,6 +31,8 @@ import { useNotificacion } from '../components/Notificacion';
 import { FUENTES } from '../src/theme/fuentes';
 // useFotoPerfil: foto de perfil guardada en el teléfono (S7-07), para el círculo del menú
 import { useFotoPerfil } from '../src/utils/fotoPerfil';
+// useNombreUsuario: nombre guardado en Firestore, para el saludo y el menú
+import { useNombreUsuario } from '../src/utils/nombreUsuario';
 
 // paleta de colores de la app
 const C = {
@@ -89,7 +91,7 @@ export default function Home({ navigation }) {
 
   // datos del usuario logueado para el avatar y el menu
   const usuario = auth.currentUser;
-  const nombre = usuario?.displayName || usuario?.email?.split('@')[0] || 'Usuario';
+  const nombre = useNombreUsuario();
   const inicial = nombre.charAt(0).toUpperCase();
   // foto elegida en Mi perfil (null = se muestra la inicial). Se relee al volver a esta pantalla.
   const [fotoPerfil] = useFotoPerfil();
