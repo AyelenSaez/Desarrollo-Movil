@@ -1,5 +1,5 @@
 // Pantalla de registro de usuario: formulario con nombre, apellido, correo,
-// contraseña (con checklist de requisitos), confirmación y términos y condiciones.
+// contraseña (con checklist de requisitos) y confirmación.
 
 // React y useState: guardar valores de la pantalla (cargando, errores, ver contraseña).
 import React, { useState } from "react";
@@ -25,7 +25,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 // z (zod): para definir las reglas de validación.
 import { z } from "zod";
 // createUserWithEmailAndPassword: crea la cuenta en Firebase con correo y contraseña.
-import { createUserWithEmailAndPassword } from "firebase/auth";
+// signOut: cierra la sesión que Firebase abre al crear la cuenta.
+import { createUserWithEmailAndPassword, signOut } from "firebase/auth";
 // auth: instancia de Firebase Auth.
 import { auth } from "../src/config/firebaseConfig";
 // crearPerfil: guarda el documento del usuario en la colección "usuarios"
@@ -33,6 +34,8 @@ import { crearPerfil } from "../src/services/perfilService";
 // FUENTES: fuente Work Sans de toda la app (reemplaza a fontWeight)
 import { FUENTES } from '../src/theme/fuentes';
 import MensajeError from "../components/MensajeError"; // el mismo que usa Login
+// useNotificacion: muestra el aviso flotante de "Cuenta creada"
+import { useNotificacion } from "../components/Notificacion";
 
 // Colores tomados de Login.js para que las dos pantallas se vean igual
 const COLORS = {
@@ -200,10 +203,11 @@ function ReglasPassword({ password }) {
 // Pantalla
 // ---------------------------------------------------------------
 // "navigation" sirve para volver al Login.
-// "setMostrarRegistroExito" viene de Navigation.js y activa la pantalla "Cuenta creada".
-export default function SignUp({ navigation, setMostrarRegistroExito }) {
+// "setRegistrando" viene de Navigation.js: evita que salte a Home mientras se crea la cuenta.
+export default function SignUp({ navigation, setRegistrando }) {
   const [cargando, setCargando] = useState(false);       // true mientras se crea la cuenta
   const [errorGeneral, setErrorGeneral] = useState("");  // mensaje del banner de error
+  const { mostrarNotificacion } = useNotificacion();
 
   // Configuración del formulario (react-hook-form)
   const {
@@ -232,10 +236,9 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
   const onSubmit = async ({ nombre, apellido, email, password }) => {
     setErrorGeneral("");
     setCargando(true);
-    // Igual que en el Login: se avisa antes a Navigation para que, cuando
-    // Firebase inicie sesión al crear la cuenta, muestre "Cuenta creada"
-    // y no salte directo a Home.
-    setMostrarRegistroExito?.(true);
+    // Se avisa antes a Navigation para que, cuando Firebase inicie sesión
+    // al crear la cuenta, no salte directo a Home.
+    setRegistrando?.(true);
     try {
             // credencial: contiene el usuario recién creado (y su UID)
       const credencial = await createUserWithEmailAndPassword(auth, email.trim(), password);
@@ -246,9 +249,15 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
       if (!perfil.ok) {
         console.warn("No se pudo guardar el perfil:", perfil.codigo, perfil.mensaje);
       }
-      // Navigation detecta la sesión y muestra la pantalla "Cuenta creada".
+
+      // Cierra la sesión que abrió Firebase, avisa con la notificación verde
+      // y vuelve al Login con el correo ya cargado
+      await signOut(auth);
+      mostrarNotificacion("¡Cuenta creada! Ya podés iniciar sesión.", "exito");
+      navigation.navigate("Login", { email: email.trim() });
+      setRegistrando?.(false);
     } catch (error) {
-      setMostrarRegistroExito?.(false); // falló: no mostrar la pantalla de éxito
+      setRegistrando?.(false);
       console.log("Error de registro:", error.code, error.message);
       // Según el código de error de Firebase se elige el mensaje del banner
       switch (error.code) {
