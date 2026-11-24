@@ -74,7 +74,7 @@ const MENU = [
   { key: 'Equipos', label: 'Equipos', icon: 'hardware-chip-outline', route: 'ListadoEquipos' },
 ];
 
-// ancho del menu lateral:
+// ancho del menu lateral: 78% de la pantalla, con un maximo de 320
 const DRAWER_WIDTH = Math.min(Dimensions.get('window').width * 0.78, 320);
 
 // pantalla principal. "navigation" sirve para ir a otras pantallas (ej. ListadoEquipos)
@@ -128,7 +128,7 @@ export default function Home({ navigation }) {
   // Al confirmar en el cartel: cierra la sesión en Firebase y muestra un aviso.
   // Navigation detecta que ya no hay usuario y vuelve al Login solo.
   const handleLogOut = async () => {
-    if (cerrandoSesion) return;
+    if (cerrandoSesion) return; // evita que se ejecute dos veces
     setCerrandoSesion(true);
     const resultado = await cerrarSesion();
     if (resultado.ok) {
@@ -154,8 +154,9 @@ export default function Home({ navigation }) {
         <View style={styles.headerEspacio} />
       </View>
 
+      {/* contenido principal: el margen de abajo respeta la barra del telefono */}
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 16 }]}
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.saludo}>BIENVENIDO</Text>
@@ -203,6 +204,7 @@ export default function Home({ navigation }) {
             PROXIMAS_RESERVAS.map((r, i) => (
               <View
                 key={r.id}
+                // linea divisoria en todas las filas menos en la ultima
                 style={[styles.reserva, i < PROXIMAS_RESERVAS.length - 1 && styles.reservaDivider]}
               >
                 <View style={[styles.avatar, styles.avatarReserva]}>
@@ -216,6 +218,7 @@ export default function Home({ navigation }) {
                   <Text style={styles.reservaFecha}>
                     {r.fecha} {r.hora}
                   </Text>
+                  {/* etiqueta de estado: verde si esta confirmada, amarilla si no */}
                   <View style={[styles.badge, r.estado !== 'Confirmada' && styles.badgePendiente]}>
                     <Text style={[styles.badgeText, r.estado !== 'Confirmada' && { color: '#8a5a00' }]}>
                       {r.estado}
@@ -227,9 +230,10 @@ export default function Home({ navigation }) {
           )}
         </View>
 
-        {/* estado de equipos: barras de progreso, toda la tarjeta lleva al listado */}
+        {/* estado de equipos: barras de progreso, toda la tarjeta lleva al listado.
+            sectionFinal hace que la tarjeta ocupe el espacio que sobra hasta abajo */}
         <TouchableOpacity
-          style={styles.section}
+          style={[styles.section, styles.sectionFinal]}
           activeOpacity={0.85}
           onPress={() => navigation.navigate('ListadoEquipos')}
         >
@@ -237,25 +241,28 @@ export default function Home({ navigation }) {
             <Text style={styles.sectionTitle}>Estado de equipos</Text>
             <Ionicons name="chevron-forward" size={18} color={C.muted} />
           </View>
-          {ESTADO_EQUIPOS.map((e) => (
-            <View key={e.label} style={{ marginBottom: 14 }}>
-              <View style={styles.barRow}>
-                <Text style={styles.barLabel}>{e.label}</Text>
-                <Text style={styles.barValue}>
-                  {e.valor}/{e.total}
-                </Text>
+          {/* las barras se reparten en el alto disponible de la tarjeta */}
+          <View style={styles.barras}>
+            {ESTADO_EQUIPOS.map((e) => (
+              <View key={e.label} style={{ marginBottom: 14 }}>
+                <View style={styles.barRow}>
+                  <Text style={styles.barLabel}>{e.label}</Text>
+                  <Text style={styles.barValue}>
+                    {e.valor}/{e.total}
+                  </Text>
+                </View>
+                {/* barra gris de fondo y, encima, la parte de color con ancho proporcional (valor/total) */}
+                <View style={styles.track}>
+                  <View
+                    style={[
+                      styles.fill,
+                      { width: `${e.total ? (e.valor / e.total) * 100 : 0}%`, backgroundColor: e.color },
+                    ]}
+                  />
+                </View>
               </View>
-              {/* barra gris de fondo y, encima, la parte de color con ancho proporcional (valor/total) */}
-              <View style={styles.track}>
-                <View
-                  style={[
-                    styles.fill,
-                    { width: `${e.total ? (e.valor / e.total) * 100 : 0}%`, backgroundColor: e.color },
-                  ]}
-                />
-              </View>
-            </View>
-          ))}
+            ))}
+          </View>
         </TouchableOpacity>
       </ScrollView>
 
@@ -385,7 +392,7 @@ const styles = StyleSheet.create({
   headerLogo: {
     height: 36,
     width: undefined,
-    aspectRatio: 2170 / 725,
+    aspectRatio: 2170 / 725, // mantiene la proporcion original del logo
     resizeMode: 'contain',
   },
   avatar: {
@@ -403,11 +410,11 @@ const styles = StyleSheet.create({
   avatarText: { fontFamily: FUENTES.bold, color: '#fff', fontSize: 16 },
 
   // contenido
-  content: { padding: 16 },
+  content: { flexGrow: 1, padding: 16 }, // flexGrow: el contenido ocupa al menos todo el alto
   saludo: { fontFamily: FUENTES.extrabold, fontSize: 22, color: C.navy, letterSpacing: 1 },
   subSaludo: { fontFamily: FUENTES.regular, fontSize: 14, color: C.muted, marginTop: 4, marginBottom: 16 },
 
-  // tarjetas de resumen
+  // tarjetas de resumen (dos por fila)
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   card: {
     width: '48.5%',
@@ -459,6 +466,8 @@ const styles = StyleSheet.create({
   badgeText: { fontFamily: FUENTES.semibold, fontSize: 11, color: C.green },
 
   // barras de estado
+  sectionFinal: { flexGrow: 1, marginBottom: 0 }, // la ultima tarjeta se estira hasta el final
+  barras: { flexGrow: 1, justifyContent: 'space-evenly' }, // reparte las barras con espacios parejos
   barRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   barLabel: { fontFamily: FUENTES.regular, fontSize: 14, color: C.text },
   barValue: { fontFamily: FUENTES.regular, fontSize: 13, color: C.muted },
