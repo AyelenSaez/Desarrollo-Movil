@@ -1,4 +1,4 @@
- import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
  
     // componentes de React Native que se usan para armar la pantalla
     import {
@@ -116,7 +116,7 @@
             {/* lápiz que indica que se puede editar */}
             <Ionicons
             name="create-outline"
-            size={20}
+            size={18}
             color={error ? COLORS.error : COLORS.azul}
             />
         </View>
@@ -351,7 +351,7 @@
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 accessibilityLabel="Volver"
             >
-                <Ionicons name="arrow-back" size={28} color={COLORS.blanco} />
+                <Ionicons name="arrow-back" size={24} color={COLORS.blanco} />
             </TouchableOpacity>
             <Text style={styles.titulo}>Editar perfil</Text>
             </View>
@@ -386,7 +386,7 @@
  
         {/* scroll por si la pantalla es chica; mantiene los toques con el teclado abierto */}
         <ScrollView
-            contentContainerStyle={styles.cuerpo}
+            contentContainerStyle={[styles.cuerpo, { paddingBottom: insets.bottom + 16 }]}
             keyboardShouldPersistTaps="handled"
         >
             {/* banner rojo si falló la carga del perfil (S7-03) */}
@@ -467,6 +467,9 @@
             )}
             />
  
+            {/* espacio flexible: empuja los botones hasta abajo */}
+            <View style={styles.espacio} />
+
             {/* botón verde: Guardar cambios */}
             <TouchableOpacity
             style={[styles.botonGuardar, guardando && styles.botonDeshabilitado]}
@@ -476,7 +479,7 @@
             <Text style={styles.textoGuardar}>{guardando ? "Guardando..." : "Guardar cambios"}</Text>
             </TouchableOpacity>
 
-            {/* botón con borde azul: Cancelar (vuelve a Mi perfil sin guardar) */}
+            {/* Cancelar: vuelve a Mi perfil sin guardar */}
             <TouchableOpacity style={styles.botonCancelar} onPress={volver} disabled={guardando}>
             <Text style={styles.textoCancelar}>Cancelar</Text>
             </TouchableOpacity>
@@ -556,17 +559,17 @@
     },
  
     // fila con la flecha y el título "Mi perfil"
-    encabezadoTitulo: { flexDirection: "row", alignItems: "center", marginBottom: 24 },
-    titulo: { fontFamily: FUENTES.bold, fontSize: 28, color: COLORS.blanco, marginLeft: 12 },
+    encabezadoTitulo: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
+    titulo: { fontFamily: FUENTES.bold, fontSize: 24, color: COLORS.blanco, marginLeft: 10 },
  
     // fila con el círculo y los datos del usuario
     perfilFila: { flexDirection: "row", alignItems: "center" },
  
     // círculo verde con la inicial
     avatar: {
-        width: 84,
-        height: 84,
-        borderRadius: 42,
+        width: 80,
+        height: 80,
+        borderRadius: 40,
         backgroundColor: COLORS.verde,
         alignItems: "center",
         justifyContent: "center",
@@ -574,7 +577,7 @@
     },
     // foto de perfil: ocupa todo el círculo
     avatarFoto: { width: "100%", height: "100%" },
-    avatarLetra: { fontFamily: FUENTES.bold, fontSize: 40, color: COLORS.blanco },
+    avatarLetra: { fontFamily: FUENTES.bold, fontSize: 32, color: COLORS.blanco },
  
     // cámara chiquita abajo a la derecha del círculo
     camara: {
@@ -591,11 +594,13 @@
  
     // nombre y correo al lado del círculo
     datos: { flex: 1, marginLeft: 16 },
-    nombreEncabezado: { fontFamily: FUENTES.regular, fontSize: 20, color: COLORS.blanco },
-    emailEncabezado: { fontFamily: FUENTES.bold, fontSize: 14, color: COLORS.blanco, marginTop: 4 },
+    nombreEncabezado: { fontFamily: FUENTES.semibold, fontSize: 20, color: COLORS.blanco },
+    emailEncabezado: { fontFamily: FUENTES.regular, fontSize: 14, color: COLORS.blanco, marginTop: 4 },
  
     // márgenes del cuerpo con los campos
-    cuerpo: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 40 },
+    // flexGrow: el contenido ocupa todo el alto disponible
+    cuerpo: { flexGrow: 1, paddingHorizontal: 30, paddingTop: 24 },
+    espacio: { flexGrow: 1, minHeight: 24 },
  
     // banner de éxito o error
     banner: {
@@ -610,10 +615,10 @@
     bannerMensaje: { fontFamily: FUENTES.regular, fontSize: 13, marginTop: 2 },
  
     // espacio entre un campo y el siguiente
-    grupo: { marginBottom: 20 },
+    grupo: { marginBottom: 16 },
  
     // título arriba de cada campo
-    label: { fontFamily: FUENTES.regular, fontSize: 16, color: COLORS.azulLabel, marginBottom: 8 },
+    label: { fontFamily: FUENTES.regular, fontSize: 16, color: COLORS.azulLabel, marginBottom: 6 },
  
     // caja de cada campo (borde gris redondeado)
     inputWrap: {
@@ -623,8 +628,9 @@
         borderWidth: 1,
         borderColor: COLORS.borde,
         borderRadius: 10,
-        paddingHorizontal: 12,
-        height: 52,
+        paddingHorizontal: 8,
+        paddingRight: 16,
+        height: 44,
         backgroundColor: COLORS.blanco,
     },
  
@@ -637,32 +643,23 @@
     // espacio para el mensaje de error (igual que en las otras pantallas)
     errorWrap: { marginTop: 20 },
  
-    // botón verde: Guardar cambios
+    // botón verde: Guardar cambios (mismas medidas que en las otras pantallas)
     botonGuardar: {
         backgroundColor: COLORS.verde,
-        borderRadius: 10,
-        height: 52,
+        borderRadius: 8,
+        paddingVertical: 14,
+        width: "85%",
+        alignSelf: "center",
         alignItems: "center",
-        justifyContent: "center",
-        marginTop: 10,
     },
     textoGuardar: { fontFamily: FUENTES.bold, fontSize: 18, color: COLORS.blanco },
  
     // botón apagado mientras se guardan los cambios
     botonDeshabilitado: { opacity: 0.6 },
  
-    // botón con borde azul: Cancelar
-    botonCancelar: {
-        borderWidth: 1,
-        borderColor: COLORS.azul,
-        borderRadius: 10,
-        height: 52,
-        alignItems: "center",
-        justifyContent: "center",
-        marginTop: 14,
-        backgroundColor: COLORS.blanco,
-    },
-    textoCancelar: { fontFamily: FUENTES.bold, fontSize: 18, color: COLORS.azul },
+    // Cancelar: solo texto, igual que en las pantallas de equipos
+    botonCancelar: { alignSelf: "center", marginTop: 20, paddingHorizontal: 20 },
+    textoCancelar: { fontFamily: FUENTES.regular, fontSize: 16, color: COLORS.azulLabel },
 
     // panel de abajo con las opciones de la foto (S7-07)
     panelFondo: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.4)" },
