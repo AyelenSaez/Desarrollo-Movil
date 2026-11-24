@@ -16,7 +16,7 @@ import {
   Platform,             // saber si es iOS o Android
   ActivityIndicator,    // ruedita de carga dentro del botón
 } from "react-native";
-// Ionicons: íconos (sobre, candado, ojo, checkbox, checks de requisitos).
+// Ionicons: íconos (sobre, candado, ojo, checks de requisitos).
 import { Ionicons } from "@expo/vector-icons";
 // useForm: maneja el formulario y sus errores. Controller: conecta cada campo con el formulario.
 import { useForm, Controller } from "react-hook-form";
@@ -67,9 +67,11 @@ const REGLAS_PASSWORD = [
 // ---------------------------------------------------------------
 const OBLIGATORIO = "Este campo es obligatorio";
 
+// Solo letras (con tildes y ñ) y espacios: sin números ni símbolos
+const SOLO_LETRAS = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s]+$/;
+
 // Esquema del formulario. .refine agrega reglas personalizadas:
 // - la contraseña debe cumplir todas las REGLAS_PASSWORD
-// - los términos deben estar aceptados
 // - la confirmación debe ser igual a la contraseña (el error se muestra en confirmPassword)
 const schema = z
   .object({
@@ -77,12 +79,14 @@ const schema = z
       .string()
       .trim()
       .min(1, OBLIGATORIO)
-      .min(2, "El nombre debe tener al menos 2 caracteres"),
+      .min(2, "El nombre debe tener al menos 2 caracteres")
+      .regex(SOLO_LETRAS, "El nombre solo puede contener letras"),
     apellido: z
       .string()
       .trim()
       .min(1, OBLIGATORIO)
-      .min(2, "El apellido debe tener al menos 2 caracteres"),
+      .min(2, "El apellido debe tener al menos 2 caracteres")
+      .regex(SOLO_LETRAS, "El apellido solo puede contener letras"),
     email: z
       .string()
       .trim()
@@ -96,9 +100,6 @@ const schema = z
         "La contraseña no cumple con los requisitos"
       ),
     confirmPassword: z.string().min(1, OBLIGATORIO),
-    terminos: z.boolean().refine((v) => v === true, {
-      message: "Debe aceptar los términos y condiciones",
-    }),
   })
   .refine((datos) => datos.password === datos.confirmPassword, {
     message: "Las contraseñas no coinciden",
@@ -221,7 +222,6 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
       email: "",
       password: "",
       confirmPassword: "",
-      terminos: false,
     },
   });
 
@@ -295,14 +295,16 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
           style={styles.logo}
           resizeMode="contain"
         />
-        <View style={styles.separador} />
 
         {/* Banner de error general (igual que el del Login) */}
         {errorGeneral ? (
           <MensajeError tipo="banner" mensaje={errorGeneral} />
         ) : null}
 
-        <Text style={styles.titulo}>Crear cuenta</Text>
+        {/* Leyenda de campos obligatorios, antes de los campos (igual que el Login) */}
+        <Text style={styles.leyenda}>
+          Los campos (<Text style={styles.asterisco}>*</Text>) son obligatorios
+        </Text>
 
         {/* Nombre */}
         <Controller
@@ -398,44 +400,6 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
           )}
         />
 
-        {/* Términos y condiciones */}
-        <Controller
-          control={control}
-          name="terminos"
-          render={({ field: { onChange, value } }) => (
-            <View style={styles.grupo}>
-              <View style={styles.terminosFila}>
-                <TouchableOpacity
-                  onPress={() => onChange(!value)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons
-                    name={value ? "checkbox" : "square-outline"}
-                    size={20}
-                    color={value ? COLORS.verde : COLORS.icono}
-                  />
-                </TouchableOpacity>
-                <Text style={styles.terminosTexto}>
-                  Acepto los{" "}
-                  <Text
-                    style={styles.link}
-                    onPress={() => {
-                      // TODO: abrir pantalla o modal de Términos y Condiciones
-                    }}
-                  >
-                    Términos y Condiciones
-                  </Text>
-                </Text>
-              </View>
-              {errors.terminos?.message ? (
-                <View style={styles.errorWrap}>
-                  <MensajeError mensaje={errors.terminos.message} />
-                </View>
-              ) : null}
-            </View>
-          )}
-        />
-
         {/* Botón: valida el formulario y ejecuta onSubmit (muestra una ruedita mientras carga) */}
         <TouchableOpacity
           style={[styles.boton, cargando && styles.botonDeshabilitado]}
@@ -448,12 +412,6 @@ export default function SignUp({ navigation, setMostrarRegistroExito }) {
             <Text style={styles.botonTexto}>Registrarse</Text>
           )}
         </TouchableOpacity>
-
-        {/* Leyenda de campos obligatorios (S14-11) */}
-        <Text style={styles.leyenda}>
-          Todos los campos (<Text style={styles.asterisco}>*</Text>) son
-          obligatorios
-        </Text>
 
         {/* Link al login */}
         <View style={styles.pie}>
@@ -475,21 +433,7 @@ const styles = StyleSheet.create({
     paddingTop: 24, // más chico que antes: ahora la pantalla tiene header
     paddingBottom: 32,
   },
-  logo: { width: "100%", height: 80 },
-  separador: {
-    height: 1,
-    backgroundColor: COLORS.azul,
-    marginTop: 12,
-    marginBottom: 20,
-    width: "60%",
-    alignSelf: "center",
-  },
-  titulo: {
-    fontFamily: FUENTES.bold,
-    fontSize: 22,
-    color: COLORS.azul,
-    marginBottom: 12,
-  },
+  logo: { width: "100%", height: 80, marginBottom: 20 },
   grupo: { marginBottom: 14 },
   label: { fontFamily: FUENTES.regular, fontSize: 14, color: COLORS.azul, marginBottom: 6 },
   asterisco: { color: COLORS.asterisco },
@@ -515,9 +459,6 @@ const styles = StyleSheet.create({
   reglasTitulo: { fontFamily: FUENTES.regular, fontSize: 11, color: COLORS.icono, marginBottom: 4 },
   reglaFila: { flexDirection: "row", alignItems: "center", marginTop: 2 },
   reglaTexto: { fontFamily: FUENTES.regular, fontSize: 11, marginLeft: 6 },
-  terminosFila: { flexDirection: "row", alignItems: "center" },
-  terminosTexto: { fontFamily: FUENTES.regular, fontSize: 12, color: COLORS.azul, marginLeft: 8 },
-  link: { textDecorationLine: "underline", color: COLORS.azul },
   boton: {
     backgroundColor: COLORS.verde,
     borderRadius: 8,
@@ -530,10 +471,10 @@ const styles = StyleSheet.create({
   botonTexto: { fontFamily: FUENTES.bold, color: COLORS.blanco, fontSize: 16 },
   leyenda: {
     fontFamily: FUENTES.regular,
-    fontSize: 12,
+    fontSize: 14,
     color: "#333",
-    textAlign: "center",
-    marginTop: 12,
+    alignSelf: "flex-start",
+    marginBottom: 10,
   },
   pie: {
     flexDirection: "row",
