@@ -44,7 +44,8 @@ const CLAVE_EMAIL = 'recordar_email';
 const CLAVE_PASSWORD = 'recordar_password';
 
 // Pantalla de Login. "navigation" sirve para ir a SignUp o ForgotPassword.
-export default function Login({ navigation }) {
+// "route.params.email" llega desde SignUp después de crear la cuenta.
+export default function Login({ navigation, route }) {
   // ESTADOS LOCALES
   const [showPassword, setShowPassword] = useState(false); // true = contraseña visible
   const [remember, setRemember] = useState(false);         // estado del checkbox "Recordarme"
@@ -80,6 +81,15 @@ export default function Login({ navigation }) {
     };
     cargarDatosGuardados();
   }, []);
+
+  // AL VOLVER DEL REGISTRO: deja cargado el correo de la cuenta recién creada
+  const emailRegistrado = route?.params?.email;
+  useEffect(() => {
+    if (emailRegistrado) {
+      reset({ email: emailRegistrado, password: '' });
+      setLoginError(null);
+    }
+  }, [emailRegistrado]);
 
   // Guarda o borra los datos según el checkbox "Recordarme"
   const actualizarDatosGuardados = async (email, password) => {

@@ -161,14 +161,7 @@ export default function ForgotPassword({ navigation }) {
         {/* Banner de error del envío (solo aparece si falló) */}
         {envioError && <MensajeError tipo="banner" mensaje={envioError} />}
 
-        {/* Nota de campos obligatorios (antes de los campos, igual que en el Login) */}
-        <Text style={styles.requiredNote}>
-          Los campos (<Text style={styles.asterisk}>*</Text>) son obligatorios
-        </Text>
-
-        <Text style={styles.label}>
-          Correo electrónico <Text style={styles.asterisk}>*</Text>
-        </Text>
+        <Text style={styles.label}>Correo electrónico</Text>
         {/* Caja del campo: el borde se pone rojo si falló el envío */}
         <View style={[styles.inputBox, envioError && styles.inputError]}>
           <FontAwesome
@@ -255,16 +248,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#0b2f5b',
     marginBottom: 30,
-  },
-  requiredNote: {
-    fontFamily: FUENTES.regular,
-    alignSelf: 'flex-start',
-    marginBottom: 10,
-    fontSize: 14,
-    color: '#333',
-  },
-  asterisk: {
-    color: '#d32f2f',
   },
   label: {
     fontFamily: FUENTES.bold,

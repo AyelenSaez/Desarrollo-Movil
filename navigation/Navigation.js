@@ -14,8 +14,7 @@ import { NavigationContainer } from '@react-navigation/native';
 // createStackNavigator: crea una navegación "en pila" (cada pantalla se apila sobre la anterior).
 import { createStackNavigator } from '@react-navigation/stack';
 // onAuthStateChanged: avisa cada vez que el usuario inicia o cierra sesión.
-// signOut: cierra la sesión del usuario actual.
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 // auth: instancia de Firebase Auth ya configurada.
 // isFirebaseConfigured: indica si están cargadas las variables del archivo .env.
 import { auth, isFirebaseConfigured } from '../src/config/firebaseConfig';
@@ -25,7 +24,6 @@ import SignUp from '../screens/SignUp';
 import RegistroFallido from '../screens/RegistroFallido';
 import Home from '../screens/Home';
 import ForgotPassword from '../screens/ForgotPassword';
-import RegistroExitoso from '../screens/RegistroExitoso';
 import ListadoEquipos from '../screens/ListadoEquipos';
 import RegistroEquipo from '../screens/RegistroEquipo';
 import ModificarEquipo from '../screens/ModificarEquipo';
@@ -42,9 +40,10 @@ const Stack = createStackNavigator();
 export default function Navigation() {
   // user: undefined = todavía no se sabe (cargando), null = sin sesión, objeto = usuario logueado
   const [user, setUser] = useState(undefined);
-  // true = mostrar la pantalla de "registro exitoso" después de crear la cuenta
-  // (Firebase inicia sesión al crear la cuenta; sin esto pasaría directo a Home)
-  const [mostrarRegistroExito, setMostrarRegistroExito] = useState(false);
+  // true = se está creando una cuenta. Firebase inicia sesión al crearla;
+  // mientras dura el registro se siguen mostrando las pantallas públicas
+  // para que no salte a Home (SignUp cierra esa sesión y vuelve al Login).
+  const [registrando, setRegistrando] = useState(false);
 
   // Al montar el componente se suscribe a los cambios de sesión de Firebase.
   // Devuelve la función para desuscribirse cuando el componente se desmonta.
@@ -52,15 +51,6 @@ export default function Navigation() {
     if (!auth) return;
     return onAuthStateChanged(auth, setUser);
   }, []);
-
-  // Botón "Iniciar sesión" de Registro exitoso: cierra la sesión que abrió Firebase y vuelve al Login
-  const irAlLoginDespuesDeRegistro = async () => {
-    try {
-      await signOut(auth);
-    } finally {
-      setMostrarRegistroExito(false);
-    }
-  };
 
   // Si falta el archivo .env, se muestra un aviso en lugar de la app.
   if (!isFirebaseConfigured) {
@@ -82,12 +72,8 @@ export default function Navigation() {
     <NavigationContainer>
       <Stack.Navigator>
         {/* Se elige qué pantallas existen según el estado:
-            1) Registro exitoso  2) Usuario logueado  3) Sin sesión */}
-        {user && mostrarRegistroExito ? (
-          <Stack.Screen name="RegistroExitoso" options={{ headerShown: false }}>
-            {() => <RegistroExitoso onIniciarSesion={irAlLoginDespuesDeRegistro} />}
-          </Stack.Screen>
-        ) : user ? (
+            1) Usuario logueado  2) Sin sesión (o creando una cuenta) */}
+        {user && !registrando ? (
           <>
             <Stack.Screen name="Home" component={Home} options={{ title: 'Inicio', headerShown: false }} />
 
@@ -131,11 +117,9 @@ export default function Navigation() {
             {/* Al iniciar sesión, Firebase cambia "user" y se pasa directo al Home */}
             <Stack.Screen name="Login" component={Login} options={{ title: 'Iniciar sesión' }} />
 
-            {/* SignUp recibe setMostrarRegistroExito, así que va con función hija (sin component=) */}
+            {/* SignUp recibe setRegistrando, así que va con función hija (sin component=) */}
             <Stack.Screen name="SignUp" options={{ title: 'Registro' }}>
-              {(props) => (
-                <SignUp {...props} setMostrarRegistroExito={setMostrarRegistroExito} />
-              )}
+              {(props) => <SignUp {...props} setRegistrando={setRegistrando} />}
             </Stack.Screen>
 
             <Stack.Screen
