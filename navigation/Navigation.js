@@ -24,7 +24,6 @@ import Login from '../screens/Login';
 import SignUp from '../screens/SignUp';
 import RegistroFallido from '../screens/RegistroFallido';
 import Home from '../screens/Home';
-import LoginExitoso from '../screens/LoginExitoso';
 import ForgotPassword from '../screens/ForgotPassword';
 import RegistroExitoso from '../screens/RegistroExitoso';
 import ListadoEquipos from '../screens/ListadoEquipos';
@@ -43,8 +42,6 @@ const Stack = createStackNavigator();
 export default function Navigation() {
   // user: undefined = todavía no se sabe (cargando), null = sin sesión, objeto = usuario logueado
   const [user, setUser] = useState(undefined);
-  // true = mostrar la pantalla de "login exitoso" antes de pasar a Home
-  const [mostrarExito, setMostrarExito] = useState(false);
   // true = mostrar la pantalla de "registro exitoso" después de crear la cuenta
   // (Firebase inicia sesión al crear la cuenta; sin esto pasaría directo a Home)
   const [mostrarRegistroExito, setMostrarRegistroExito] = useState(false);
@@ -85,12 +82,8 @@ export default function Navigation() {
     <NavigationContainer>
       <Stack.Navigator>
         {/* Se elige qué pantallas existen según el estado:
-            1) Login exitoso  2) Registro exitoso  3) Usuario logueado  4) Sin sesión */}
-        {user && mostrarExito ? (
-          <Stack.Screen name="LoginExitoso" options={{ headerShown: false }}>
-            {() => <LoginExitoso onContinuar={() => setMostrarExito(false)} />}
-          </Stack.Screen>
-        ) : user && mostrarRegistroExito ? (
+            1) Registro exitoso  2) Usuario logueado  3) Sin sesión */}
+        {user && mostrarRegistroExito ? (
           <Stack.Screen name="RegistroExitoso" options={{ headerShown: false }}>
             {() => <RegistroExitoso onIniciarSesion={irAlLoginDespuesDeRegistro} />}
           </Stack.Screen>
@@ -135,10 +128,8 @@ export default function Navigation() {
           </>
         ) : (
           <>
-            {/* Login recibe setMostrarExito para activar la pantalla de "login exitoso" */}
-            <Stack.Screen name="Login" options={{ title: 'Iniciar sesión' }}>
-              {(props) => <Login {...props} setMostrarExito={setMostrarExito} />}
-            </Stack.Screen>
+            {/* Al iniciar sesión, Firebase cambia "user" y se pasa directo al Home */}
+            <Stack.Screen name="Login" component={Login} options={{ title: 'Iniciar sesión' }} />
 
             {/* SignUp recibe setMostrarRegistroExito, así que va con función hija (sin component=) */}
             <Stack.Screen name="SignUp" options={{ title: 'Registro' }}>

@@ -44,8 +44,7 @@ const CLAVE_EMAIL = 'recordar_email';
 const CLAVE_PASSWORD = 'recordar_password';
 
 // Pantalla de Login. "navigation" sirve para ir a SignUp o ForgotPassword.
-// "setMostrarExito" viene de Navigation.js y activa la pantalla de login exitoso.
-export default function Login({ navigation, setMostrarExito }) {
+export default function Login({ navigation }) {
   // ESTADOS LOCALES
   const [showPassword, setShowPassword] = useState(false); // true = contraseña visible
   const [remember, setRemember] = useState(false);         // estado del checkbox "Recordarme"
@@ -100,15 +99,13 @@ export default function Login({ navigation, setMostrarExito }) {
   // ENVÍO DEL FORMULARIO:  Solo se ejecuta si la validación de zod pasó correctamente
   const onSubmit = async ({ email, password }) => {
     setLoginError(null); // limpia el error del intento anterior
-    setMostrarExito?.(true); // si el login sale bien, se mostrará la pantalla de éxito
     try {
       // Intenta iniciar sesión en Firebase
       await signInWithEmailAndPassword(auth, email.trim(), password);
       // Solo si el login fue correcto se guardan (o borran) los datos de "Recordarme"
       await actualizarDatosGuardados(email.trim(), password);
-      // Navigation detecta la sesión y muestra la pantalla de login exitoso.
+      // Navigation detecta la sesión y pasa directo al Home.
     } catch (error) {
-      setMostrarExito?.(false); // el login falló: no mostrar la pantalla de éxito
       console.log('Error de inicio de sesión:', error.code, error.message);
       // Según el código de error de Firebase, se elige el mensaje a mostrar.
       // fields: true = además se pintan en rojo los dos campos.
