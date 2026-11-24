@@ -118,7 +118,8 @@ export default function Navigation() {
             <Stack.Screen name="Login" component={Login} options={{ title: 'Iniciar sesión' }} />
 
             {/* SignUp recibe setRegistrando, así que va con función hija (sin component=) */}
-            <Stack.Screen name="SignUp" options={{ title: 'Registro' }}>
+            {/* Sin flecha "Iniciar sesión" arriba: se vuelve con el link de abajo */}
+            <Stack.Screen name="SignUp" options={{ title: 'Registro', headerLeft: () => null }}>
               {(props) => <SignUp {...props} setRegistrando={setRegistrando} />}
             </Stack.Screen>
 
