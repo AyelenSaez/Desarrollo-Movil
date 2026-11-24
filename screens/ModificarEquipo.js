@@ -14,6 +14,9 @@ import {
     ActivityIndicator,     // circulito de carga
 } from "react-native";
 
+// Márgenes seguros (notch, barra de estado)
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 // Mismo componente de error que usan las demás pantallas
 import MensajeError from "../components/MensajeError";
 
@@ -79,6 +82,8 @@ async function obtenerIdsTipoEstado(tipo, estado) {
 // ---------------------------------------------------------------
 export default function ModificarEquipo({ navigation, route }) {
     const { idEquipo } = route.params;
+    // margen seguro de arriba, para que el contenido no se meta debajo de la hora
+    const insets = useSafeAreaInsets();
 
     // Guarda si todavía se están trayendo los datos y si hubo un error
     const [cargando, setCargando] = useState(true);
@@ -94,9 +99,11 @@ export default function ModificarEquipo({ navigation, route }) {
         handleSubmit,             // valida y recién ahí ejecuta onSubmit
         getValues,                // lee el valor actual de un campo
         reset,                    // carga los datos del equipo en los campos
+        clearErrors,              // borra los errores
         formState: { errors },    // errores de cada campo (si los hay)
     } = useForm({
         resolver: zodResolver(equipoFormSchema),
+        reValidateMode: "onSubmit", // los errores vuelven a aparecer solo al tocar "Guardar cambios"
         defaultValues: { nombre: "", tipo: "", cantidad: "", estado: "", descripcion: "" },
     });
 
@@ -183,7 +190,7 @@ export default function ModificarEquipo({ navigation, route }) {
     return (
         // Evita que el teclado tape los campos en iOS
         <KeyboardAvoidingView
-            style={styles.flex}
+            style={[styles.flex, { paddingTop: insets.top }]}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
             {/* Scroll por si la pantalla es chica; mantiene los toques con el teclado abierto */}
@@ -193,6 +200,10 @@ export default function ModificarEquipo({ navigation, route }) {
             >
                 {/* Foto fija de arriba (la misma del registro) */}
                 <FotoCabecera />
+
+                {/* Flecha para volver: está dentro del scroll, así sube junto con la foto
+                    y no tapa el título */}
+                <FlechaVolver onPress={volver} top={16} />
 
                 {/* Todo el formulario va dentro de esta caja con márgenes */}
                 <View style={styles.formulario}>
@@ -206,7 +217,16 @@ export default function ModificarEquipo({ navigation, route }) {
                     <MensajeError mensaje={errorCarga} tipo="banner" />
                 ) : (
                     <>
-                        <FormularioEquipo control={control} mensajeError={mensajeError} />
+                        {/* Nota de campos obligatorios (igual que en el registro) */}
+                        <Text style={styles.nota}>
+                            Los campos (<Text style={styles.asterisco}>*</Text>) son obligatorios
+                        </Text>
+
+                        <FormularioEquipo
+                            control={control}
+                            mensajeError={mensajeError}
+                            clearErrors={clearErrors}
+                        />
 
                         {/* Botón principal: valida el formulario y ejecuta onSubmit */}
                         <TouchableOpacity
@@ -227,9 +247,6 @@ export default function ModificarEquipo({ navigation, route }) {
                 </TouchableOpacity>
                 </View>
             </ScrollView>
-
-            {/* Flecha para volver: va DESPUÉS del scroll para quedar encima de la foto */}
-            <FlechaVolver onPress={volver} />
         </KeyboardAvoidingView>
     );
 }

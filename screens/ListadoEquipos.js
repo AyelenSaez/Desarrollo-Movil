@@ -64,10 +64,9 @@ function BotonAccion({ icono, color, fondo, onPress, label }) {
   );
 }
 
-// ---------------------------------------------------------------
+
 // FILA: muestra un equipo con ícono, nombre, tipo y estado,
 // y los botones para verlo, modificarlo o eliminarlo.
-// ---------------------------------------------------------------
 function FilaEquipo({ equipo, onVer, onModificar, onEliminar }) {
   return (
     <View style={styles.fila}>
@@ -88,9 +87,8 @@ function FilaEquipo({ equipo, onVer, onModificar, onEliminar }) {
   );
 }
 
-// ---------------------------------------------------------------
 // PANTALLA: listado de equipos con acceso a registrar, ver, modificar y eliminar
-// ---------------------------------------------------------------
+
 export default function ListadoEquipos({ navigation }) {
   const insets = useSafeAreaInsets();
   const { mostrarNotificacion } = useNotificacion();
@@ -170,7 +168,7 @@ export default function ListadoEquipos({ navigation }) {
     <>
       {/* Buscador */}
       <View style={styles.buscador}>
-        <Ionicons name="search" size={22} color={COLORS.gris} />
+        <Ionicons name="search" size={18} color={COLORS.gris} />
         <TextInput
           style={styles.buscadorInput}
           placeholder="Buscar equipo"
@@ -225,16 +223,23 @@ export default function ListadoEquipos({ navigation }) {
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           accessibilityLabel="Volver"
         >
-          <Ionicons name="arrow-back" size={28} color={COLORS.azul} />
+          <Ionicons name="arrow-back" size={24} color={COLORS.azul} />
         </TouchableOpacity>
         <Text style={styles.titulo}>Equipos</Text>
-        <View style={styles.avatar}>
+        {/* círculo con la foto o la inicial: al tocarlo abre Mi perfil */}
+        <TouchableOpacity
+          style={styles.avatar}
+          onPress={() => navigation.navigate('PerfilUsuario')}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Ir a mi perfil"
+        >
           {fotoPerfil ? (
             <Image source={{ uri: fotoPerfil }} style={styles.avatarFoto} />
           ) : (
             <Text style={styles.avatarTexto}>{inicial}</Text>
           )}
-        </View>
+        </TouchableOpacity>
       </View>
 
       {cargandoInicial ? (
@@ -297,7 +302,7 @@ export default function ListadoEquipos({ navigation }) {
   );
 }
 
-// Estilos de la pantalla de listado (medidas de Figma, pantalla de 430 de ancho)
+// Estilos de la pantalla de listado (tamaños ajustados para coincidir con el Login)
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: COLORS.fondo },
 
@@ -312,15 +317,15 @@ const styles = StyleSheet.create({
   titulo: {
     flex: 1,
     fontFamily: FUENTES.bold,
-    fontSize: 30,
-    letterSpacing: 0.9,
+    fontSize: 24, // mismo tamaño que el estilo de título del Login
+    letterSpacing: 0.7,
     color: COLORS.azul,
     marginLeft: 10,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.verde,
     alignItems: 'center',
     justifyContent: 'center',
@@ -328,7 +333,7 @@ const styles = StyleSheet.create({
   },
   // foto de perfil: ocupa todo el círculo
   avatarFoto: { width: '100%', height: '100%' },
-  avatarTexto: { fontFamily: FUENTES.bold, fontSize: 30, color: COLORS.blanco },
+  avatarTexto: { fontFamily: FUENTES.bold, fontSize: 18, color: COLORS.blanco },
 
   // ocupa todo el espacio libre para que la ruedita quede en el centro
   cargando: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -340,7 +345,7 @@ const styles = StyleSheet.create({
   buscador: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 45,
+    height: 44, // igual que los campos del Login
     borderWidth: 1,
     borderColor: '#000',
     borderRadius: 30,
@@ -349,18 +354,18 @@ const styles = StyleSheet.create({
   buscadorInput: {
     flex: 1,
     fontFamily: FUENTES.regular,
-    fontSize: 20,
+    fontSize: 16, // igual que los campos del Login
     color: COLORS.texto,
     marginLeft: 12,
     paddingVertical: 0,
   },
 
   // Filtros: el elegido va relleno de azul, el resto con borde
-  filtros: { gap: 12, paddingVertical: 15 },
+  filtros: { gap: 12, paddingVertical: 14 },
   filtro: {
-    height: 41,
-    minWidth: 104,
-    paddingHorizontal: 18,
+    height: 36,
+    minWidth: 84,
+    paddingHorizontal: 16,
     borderRadius: 50,
     borderWidth: 1,
     borderColor: '#000',
@@ -368,7 +373,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   filtroActivo: { backgroundColor: COLORS.azul, borderColor: COLORS.azul },
-  filtroTexto: { fontFamily: FUENTES.regular, fontSize: 20, color: COLORS.azul },
+  filtroTexto: { fontFamily: FUENTES.regular, fontSize: 15, color: COLORS.azul },
   filtroTextoActivo: { color: COLORS.blanco },
 
   // "Todos los equipos" y "2 equipos"
@@ -406,17 +411,15 @@ const styles = StyleSheet.create({
 
   vacio: { textAlign: 'center', fontFamily: FUENTES.regular, color: COLORS.gris, fontSize: 15, marginTop: 40 },
 
-  // Botón "+ Nuevo equipo" fijo abajo
-  pie: { paddingHorizontal: 20, paddingTop: 12, backgroundColor: COLORS.fondo },
+  // Botón "+ Nuevo equipo" fijo abajo (mismas medidas que "Iniciar sesión" del Login)
+  pie: { paddingHorizontal: 30, paddingTop: 12, backgroundColor: COLORS.fondo },
   botonNuevo: {
-    height: 60,
-    width: '100%',
-    maxWidth: 350,
+    paddingVertical: 14,
+    width: '85%',
     alignSelf: 'center',
-    borderRadius: 10,
+    borderRadius: 8,
     backgroundColor: COLORS.verde, // verde de la app (el mismo del avatar)
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  botonNuevoTexto: { fontFamily: FUENTES.bold, fontSize: 24, letterSpacing: 0.72, color: COLORS.blanco },
+  botonNuevoTexto: { fontFamily: FUENTES.bold, fontSize: 18, color: COLORS.blanco },
 });
