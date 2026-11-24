@@ -64,10 +64,9 @@ function BotonAccion({ icono, color, fondo, onPress, label }) {
   );
 }
 
-// ---------------------------------------------------------------
+
 // FILA: muestra un equipo con ícono, nombre, tipo y estado,
 // y los botones para verlo, modificarlo o eliminarlo.
-// ---------------------------------------------------------------
 function FilaEquipo({ equipo, onVer, onModificar, onEliminar }) {
   return (
     <View style={styles.fila}>
@@ -88,9 +87,8 @@ function FilaEquipo({ equipo, onVer, onModificar, onEliminar }) {
   );
 }
 
-// ---------------------------------------------------------------
 // PANTALLA: listado de equipos con acceso a registrar, ver, modificar y eliminar
-// ---------------------------------------------------------------
+
 export default function ListadoEquipos({ navigation }) {
   const insets = useSafeAreaInsets();
   const { mostrarNotificacion } = useNotificacion();

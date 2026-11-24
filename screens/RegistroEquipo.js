@@ -79,11 +79,14 @@ import React, { useState } from "react";
     // CAMPO: texto con título arriba, borde y mensaje de error abajo.
     // Si le llega "error", el borde se pone rojo y se muestra el mensaje.
     // ---------------------------------------------------------------
-    export function Campo({ label, error, ...inputProps }) {
+    export function Campo({ label, error, obligatorio, ...inputProps }) {
     return (
         <View style={styles.grupo}>
         {/* Título del campo */}
-        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.label}>
+            {label}
+            {obligatorio ? <Text style={styles.asterisco}> *</Text> : null}
+        </Text>
 
         {/* caja de los campos, si hay error se pone roja */}
         <View style={[styles.inputWrap, error && styles.inputWrapError]}>
@@ -108,17 +111,23 @@ import React, { useState } from "react";
     // SELECTOR: desplegable para Tipo y Estado.
     // Muestra el valor elegido y, al tocarlo, abre una lista de opciones.
     // ---------------------------------------------------------------
-    export function Selector({ label, valor, opciones, placeholder, onChange, error }) {
+    export function Selector({ label, valor, opciones, placeholder, onChange, error, obligatorio, onAbrir }) {
     // Guarda si la lista de opciones está abierta o cerrada
     const [abierto, setAbierto] = useState(false);
 
     return (
         <View style={styles.grupo}>
-        <Text style={styles.label}>{label}</Text>
+        <Text style={styles.label}>
+            {label}
+            {obligatorio ? <Text style={styles.asterisco}> *</Text> : null}
+        </Text>
 
         <TouchableOpacity
             style={[styles.inputWrap, error && styles.inputWrapError]}
-            onPress={() => setAbierto(true)}
+            onPress={() => {
+                onAbrir?.();      // borra los errores al tocar el desplegable
+                setAbierto(true);
+            }}
         >
             <Text style={valor ? styles.valor : styles.textoPlaceholder}>
             {valor || placeholder}
@@ -126,7 +135,7 @@ import React, { useState } from "react";
         {/* flechita desplegable */}
             <Ionicons
             name="chevron-down"
-            size={22}
+            size={18}
             color={error ? COLORS.error : COLORS.azul}
             />
         </TouchableOpacity>
@@ -183,11 +192,12 @@ import React, { useState } from "react";
     return <Image source={require("../assets/equipo.jpeg")} style={styles.imagen} />;
     }
 
-    export function FlechaVolver({ onPress }) {
+    // "top" es opcional: permite cambiar la distancia desde arriba
+    export function FlechaVolver({ onPress, top }) {
     const insets = useSafeAreaInsets();
     return (
         <TouchableOpacity
-        style={[styles.flechaFlotante, { top: insets.top + 16 }]}
+        style={[styles.flechaFlotante, { top: top ?? insets.top + 16 }]}
         onPress={onPress}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         accessibilityLabel="Volver"
@@ -201,7 +211,10 @@ import React, { useState } from "react";
     // FORMULARIO: los 5 campos del equipo (lo usan Agregar y Editar).
     // control y mensajeError vienen del useForm de cada pantalla.
     // ---------------------------------------------------------------
-    export function FormularioEquipo({ control, mensajeError }) {
+    export function FormularioEquipo({ control, mensajeError, clearErrors }) {
+    // borra todos los errores del formulario (solo si la pantalla envía clearErrors)
+    const limpiarErrores = () => clearErrors?.();
+
     return (
         <>
         {/* Nombre: texto libre, obligatorio */}
@@ -211,6 +224,8 @@ import React, { useState } from "react";
             render={({ field: { value, onChange, onBlur } }) => (
             <Campo
                 label="Nombre equipo"
+                onFocus={limpiarErrores}
+                obligatorio
                 placeholder="Ej: Consola 16 canales"
                 value={value}
                 onChangeText={onChange}
@@ -227,6 +242,8 @@ import React, { useState } from "react";
             render={({ field: { value, onChange } }) => (
             <Selector
                 label="Tipo de equipo"
+                onAbrir={limpiarErrores}
+                obligatorio
                 valor={value}
                 opciones={LISTA_TIPOS_EQUIPO}
                 placeholder="Seleccioná un tipo"
@@ -243,6 +260,8 @@ import React, { useState } from "react";
             render={({ field: { value, onChange } }) => (
             <Selector
                 label="Estado"
+                onAbrir={limpiarErrores}
+                obligatorio
                 valor={value}
                 opciones={ESTADOS}
                 placeholder="Seleccioná un estado"
@@ -259,6 +278,8 @@ import React, { useState } from "react";
             render={({ field: { value, onChange, onBlur } }) => (
             <Campo
                 label="Cantidad"
+                onFocus={limpiarErrores}
+                obligatorio
                 placeholder="Ej: 4"
                 value={value}
                 onChangeText={onChange}
@@ -276,6 +297,7 @@ import React, { useState } from "react";
             render={({ field: { value, onChange, onBlur } }) => (
             <Campo
                 label="Descripción"
+                onFocus={limpiarErrores}
                 placeholder="Ej: Original"
                 value={value}
                 onChangeText={onChange}
@@ -297,12 +319,17 @@ import React, { useState } from "react";
     const {
         control,                  // conecta cada campo con el formulario
         handleSubmit,             // valida y recién ahí ejecuta onSubmit
+        clearErrors,              // borra los errores
         getValues,       // lee el valor actual de un campo
         formState: { errors },    // errores de cada campo (si los hay)
     } = useForm({
         resolver: zodResolver(equipoFormSchema),
+        reValidateMode: "onSubmit", // los errores vuelven a aparecer solo al tocar "Agregar"
         defaultValues: { nombre: "", tipo: "", cantidad: "", estado: "", descripcion: "" },
     });
+
+    // margen seguro de arriba, para que el contenido no se meta debajo de la hora
+    const insets = useSafeAreaInsets();
 
     // función para mostrar avisos de éxito o error
     const { mostrarNotificacion } = useNotificacion();
@@ -375,7 +402,7 @@ import React, { useState } from "react";
     return (
         // para que el teclado no tape los campos en ios
         <KeyboardAvoidingView
-        style={styles.flex}
+        style={[styles.flex, { paddingTop: insets.top }]}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
         {/* scroll por si la pantalla es chica */}
@@ -386,11 +413,24 @@ import React, { useState } from "react";
             {/* imagen de arriba */}
             <FotoCabecera />
 
+            {/* flecha para volver: está dentro del scroll, así sube junto con la foto
+                y no tapa el título */}
+            <FlechaVolver onPress={volver} top={16} />
+
             {/* formulario */}
             <View style={styles.formulario}>
-            <Text style={[styles.titulo, styles.tituloAngosto]}>Agregar nuevo equipo</Text>
+            <Text style={styles.titulo}>Agregar nuevo equipo</Text>
 
-            <FormularioEquipo control={control} mensajeError={mensajeError} />
+            {/* nota de campos obligatorios (igual que en el Login) */}
+            <Text style={styles.nota}>
+                Los campos (<Text style={styles.asterisco}>*</Text>) son obligatorios
+            </Text>
+
+            <FormularioEquipo
+                control={control}
+                mensajeError={mensajeError}
+                clearErrors={clearErrors}
+            />
 
             {/* Botón principal: Agregar */}
             <TouchableOpacity
@@ -407,15 +447,12 @@ import React, { useState } from "react";
             </TouchableOpacity>
             </View>
         </ScrollView>
-
-        {/* Flecha para volver hacia atras, encima de la imagen */}
-        <FlechaVolver onPress={volver} />
         </KeyboardAvoidingView>
     );
     }
 
     // ---------------------------------------------------------------
-    // ESTILOS (medidas de Figma, pantalla de 430 de ancho)
+    // ESTILOS (tamaños ajustados para coincidir con el Login)
     // ---------------------------------------------------------------
     export const styles = StyleSheet.create({
     // Ocupa toda la pantalla con el fondo de Figma
@@ -429,8 +466,8 @@ import React, { useState } from "react";
 
     // pantallas con foto: la foto ocupa todo el ancho, el formulario lleva los márgenes
     contenidoConFoto: { paddingBottom: 40 },
-    imagen: { width: "100%", height: 280, resizeMode: "cover" },
-    formulario: { paddingHorizontal: 20, paddingTop: 36 },
+    imagen: { width: "100%", height: 200, resizeMode: "cover" },
+    formulario: { paddingHorizontal: 30, paddingTop: 24 },
 
     // flecha en un círculo blanco con sombra, flotando encima de la foto
     flechaFlotante: {
@@ -453,21 +490,27 @@ import React, { useState } from "react";
     // titulo grande en azul
     titulo: {
         fontFamily: FUENTES.bold,
-        fontSize: 30,
-        lineHeight: 45,
-        letterSpacing: 0.9,
+        fontSize: 24,
+        lineHeight: 32,
+        letterSpacing: 0.7,
         color: COLORS.azul,
-        marginBottom: 36,
+        marginBottom: 20,
     },
 
     // en Figma "Agregar nuevo equipo" ocupa dos renglones
-    tituloAngosto: { maxWidth: 260 },
+    tituloAngosto: { maxWidth: 220 },
 
     // espacio entre un campo y el siguiente
-    grupo: { marginBottom: 26 },
+    grupo: { marginBottom: 16 },
 
     // titulo arriba de cada campo
-    label: { fontFamily: FUENTES.regular, fontSize: 20, color: COLORS.azulLabel, marginBottom: 12 },
+    label: { fontFamily: FUENTES.regular, fontSize: 16, color: COLORS.azulLabel, marginBottom: 6 },
+
+    // asterisco rojo de los campos obligatorios
+    asterisco: { color: "#d32f2f" },
+
+    // nota "Los campos (*) son obligatorios"
+    nota: { fontFamily: FUENTES.regular, fontSize: 14, color: "#333", marginBottom: 16 },
 
     // caja de cada campo osea el borde gris redondeado
     inputWrap: {
@@ -479,7 +522,7 @@ import React, { useState } from "react";
         borderRadius: 10,
         paddingHorizontal: 8,
         paddingRight: 16,
-        height: 60,
+        height: 44,
         backgroundColor: COLORS.blanco,
     },
 
@@ -487,16 +530,16 @@ import React, { useState } from "react";
     inputWrapError: { borderColor: COLORS.error },
 
     // texto que se escribe dentro del campo
-    input: { flex: 1, fontFamily: FUENTES.regular, fontSize: 20, color: COLORS.texto },
+    input: { flex: 1, fontFamily: FUENTES.regular, fontSize: 16, color: COLORS.texto },
 
     // texto del valor elegido en un selector
-    valor: { fontFamily: FUENTES.regular, fontSize: 20, color: COLORS.texto },
+    valor: { fontFamily: FUENTES.regular, fontSize: 16, color: COLORS.texto },
 
     // placeholder cuando todavía no se eligió nada
-    textoPlaceholder: { fontFamily: FUENTES.regular, fontSize: 20, color: COLORS.placeholder },
+    textoPlaceholder: { fontFamily: FUENTES.regular, fontSize: 16, color: COLORS.placeholder },
 
     // espacio para el mensaje de error
-    errorWrap: { marginTop: 20 },
+    errorWrap: { marginTop: 20 }, // evita que el mensaje se encime con el borde del campo
 
     // fondo oscuro medio transparente detras de la lista de opciones
     fondoModal: {
@@ -514,26 +557,24 @@ import React, { useState } from "react";
 
     // Boton principal (Agregar / Guardar cambios / Editar equipo)
     boton: {
-        backgroundColor: COLORS.azul,
-        borderRadius: 10,
-        height: 60,
-        width: "100%",
-        maxWidth: 350,
+        backgroundColor: COLORS.verde, // verde de la app
+        borderRadius: 8,
+        paddingVertical: 14,
+        width: "85%",
         alignSelf: "center",
         alignItems: "center",
-        justifyContent: "center",
-        marginTop: 50,
+        marginTop: 24,
     },
 
     // texto del botoon
-    botonTexto: { fontFamily: FUENTES.bold, color: COLORS.blanco, fontSize: 24, letterSpacing: 0.72 },
+    botonTexto: { fontFamily: FUENTES.bold, color: COLORS.blanco, fontSize: 18 },
 
     // texto Cancelar
     cancelar: {
         fontFamily: FUENTES.regular,
         textAlign: "center",
         color: COLORS.azulLabel,
-        fontSize: 24,
-        marginTop: 27,
+        fontSize: 16,
+        marginTop: 20,
     },
     });
