@@ -56,9 +56,9 @@ export default function MensajeCerrarSesion({ visible, cerrando = false, onCance
             <Ionicons name="log-out-outline" size={30} color={COLORS.rojo} />
           </View>
 
-          <Text style={styles.titulo}>¿Desea cerrar su sesión?</Text>
+          <Text style={styles.titulo}>¿Desea cerrar sesión?</Text>
           <Text style={styles.mensaje}>
-            Para volver a entrar vas a tener que{'\n'}ingresar tu correo y contraseña.
+            Para volver a ingresar deberá escribir{'\n'}su correo y contraseña.
           </Text>
 
           <View style={styles.botones}>
