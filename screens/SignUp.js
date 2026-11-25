@@ -1,4 +1,4 @@
-// Pantalla de registro de usuario: formulario con nombre, apellido, correo,
+// Pantalla de registro de usuario: formulario con nombre, apellido, correo, teléfono,
 // contraseña (con checklist de requisitos) y confirmación.
 
 // React y useState: guardar valores de la pantalla (cargando, errores, ver contraseña).
@@ -95,6 +95,12 @@ const schema = z
       .trim()
       .min(1, OBLIGATORIO)
       .email("El formato del correo electrónico no es válido"),
+    // Teléfono: misma regla que en Editar perfil (perfilSchema): 10 dígitos, solo números
+    telefono: z
+      .string()
+      .trim()
+      .min(1, OBLIGATORIO)
+      .regex(/^\d{10}$/, "El teléfono debe tener 10 números, sin espacios ni guiones"),
     password: z
       .string()
       .min(1, OBLIGATORIO)
@@ -224,6 +230,7 @@ export default function SignUp({ navigation, setRegistrando }) {
       nombre: "",
       apellido: "",
       email: "",
+      telefono: "",
       password: "",
       confirmPassword: "",
     },
@@ -233,7 +240,7 @@ export default function SignUp({ navigation, setRegistrando }) {
   const password = watch("password");
 
   // Solo se ejecuta si la validación de zod pasó correctamente
-  const onSubmit = async ({ nombre, apellido, email, password }) => {
+  const onSubmit = async ({ nombre, apellido, email, telefono, password }) => {
     setErrorGeneral("");
     setCargando(true);
     // Se avisa antes a Navigation para que, cuando Firebase inicie sesión
@@ -244,7 +251,7 @@ export default function SignUp({ navigation, setRegistrando }) {
       const credencial = await createUserWithEmailAndPassword(auth, email.trim(), password);
 
       // Guardar el perfil en Firestore (colección "usuarios", id = UID)
-      const perfil = await crearPerfil(credencial.user.uid, { nombre, apellido, email });
+      const perfil = await crearPerfil(credencial.user.uid, { nombre, apellido, email, telefono });
      
       if (!perfil.ok) {
         console.warn("No se pudo guardar el perfil:", perfil.codigo, perfil.mensaje);
@@ -364,6 +371,26 @@ export default function SignUp({ navigation, setRegistrando }) {
               keyboardType="email-address"
               autoComplete="email"
               error={errors.email?.message}
+            />
+          )}
+        />
+
+        {/* Teléfono */}
+        <Controller
+          control={control}
+          name="telefono"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <Campo
+              label="Teléfono"
+              icono="call-outline"
+              placeholder="Ej: 3874123452"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="phone-pad"
+              autoComplete="tel"
+              maxLength={10}
+              error={errors.telefono?.message}
             />
           )}
         />
